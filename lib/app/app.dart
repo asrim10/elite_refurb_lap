@@ -1,4 +1,5 @@
 import 'package:EliteReurbLap/app/theme/theme_data.dart';
+import 'package:EliteReurbLap/features/auth/presentation/pages/login_screen.dart';
 import 'package:EliteReurbLap/features/splash/presentation/pages/splash_screen.dart';
 import 'package:EliteReurbLap/features/splash/presentation/pages/splash_screen2.dart';
 import 'package:flutter/material.dart';
@@ -16,7 +17,10 @@ class Myapp extends ConsumerWidget {
       darkTheme: AppTheme.darkTheme(),
       themeMode: ThemeMode.system,
       home: const SplashScreen(),
-      routes: {'/splash2': (context) => const SplashScreen2()},
+      routes: {
+        '/splash2': (context) => const SplashScreen2(),
+        '/login': (context) => const LoginScreen(),
+      },
     );
   }
 }

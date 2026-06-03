@@ -117,8 +117,7 @@ class _SplashScreen2State extends ConsumerState<SplashScreen2>
                     padding: const EdgeInsets.symmetric(horizontal: 40),
                     child: ElevatedButton(
                       onPressed: () {
-                        // TODO: Navigate to home or product listing
-                        // Navigator.of(context).pushReplacementNamed('/home');
+                        Navigator.of(context).pushReplacementNamed('/login');
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
