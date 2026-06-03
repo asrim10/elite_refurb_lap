@@ -1,3 +1,4 @@
+import 'package:EliteReurbLap/features/splash/presentation/pages/splash_screen2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -18,7 +19,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void initState() {
     super.initState();
     _initializeAnimations();
-    _navigateToHome();
+    _navigateToSplashTwo();
   }
 
   void _initializeAnimations() {
@@ -38,11 +39,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _animationController.forward();
   }
 
-  void _navigateToHome() {
-    Future.delayed(const Duration(seconds: 3), () {
+  void _navigateToSplashTwo() {
+    Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
-        // TODO: Replace with your actual navigation logic
-        // Navigator.of(context).pushReplacementNamed('/home');
+        Navigator.of(context).pushReplacementNamed('/splash2');
       }
     });
   }
