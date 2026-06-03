@@ -14,10 +14,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController(text: 'John Doe');
-  final _emailController = TextEditingController(text: 'name@example.com');
-  final _passwordController = TextEditingController(text: 'password123');
-  final _confirmPasswordController = TextEditingController(text: 'password123');
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   bool get _isLoading =>
       ref.watch(authViewModelProvider).status == AuthStatus.loading;
@@ -31,8 +31,16 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     super.dispose();
   }
 
-  InputDecoration _buildInputDecoration({Widget? suffixIcon}) {
+  InputDecoration _buildInputDecoration({
+    Widget? suffixIcon,
+    String? hintText,
+  }) {
     return InputDecoration(
+      hintText: hintText,
+      hintStyle: const TextStyle(
+        color: Color(0xFFAAAAAA),
+        fontSize: 16,
+      ),
       filled: false,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: 16,
@@ -344,7 +352,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           color: Color(0xFF6B5A50),
                           fontSize: 16,
                         ),
-                        decoration: _buildInputDecoration(),
+                        decoration: _buildInputDecoration(
+                          hintText: 'e.g. John Doe',
+                        ),
                       ),
 
                       const SizedBox(height: 20),
@@ -382,7 +392,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           color: Color(0xFF6B5A50),
                           fontSize: 16,
                         ),
-                        decoration: _buildInputDecoration(),
+                        decoration: _buildInputDecoration(
+                          hintText: 'name@example.com',
+                        ),
                       ),
 
                       const SizedBox(height: 20),
@@ -418,6 +430,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           fontSize: 16,
                         ),
                         decoration: _buildInputDecoration(
+                          hintText: 'Enter your password',
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscurePassword
@@ -467,6 +480,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           fontSize: 16,
                         ),
                         decoration: _buildInputDecoration(
+                          hintText: 'Confirm your password',
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscureConfirmPassword

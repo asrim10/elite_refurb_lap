@@ -20,8 +20,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _obscurePassword = true;
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'william@gmail.com');
-  final _passwordController = TextEditingController(text: 'password123');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
 
   bool get _isLoading =>
       ref.watch(authViewModelProvider).status == AuthStatus.loading;
@@ -322,6 +322,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 horizontal: 20,
                                 vertical: 18.5,
                               ),
+                              hintText: 'your@email.com',
+                              hintStyle: const TextStyle(
+                                color: Color(0xFFAAAAAA),
+                                fontSize: 14,
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: const BorderSide(
@@ -401,6 +406,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 20,
                                 vertical: 18.5,
+                              ),
+                              hintText: 'Enter your password',
+                              hintStyle: const TextStyle(
+                                color: Color(0xFFAAAAAA),
+                                fontSize: 14,
                               ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
