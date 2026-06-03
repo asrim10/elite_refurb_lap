@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 class ApiEndpoints {
   ApiEndpoints._();
 
-  static const bool isPhysicalDevice = true;
+  static const bool isPhysicalDevice = false;
 
   static const String compIpAddress = "192.168.1.66";
 
@@ -15,13 +15,13 @@ class ApiEndpoints {
     }
     // if android
     if (kIsWeb) {
-      return 'http://localhost:3000/api/v1';
+      return 'http://localhost:5050/api';
     } else if (Platform.isAndroid) {
-      return 'http://10.0.2.2:3000/api/v1';
+      return 'http://10.0.2.2:5050/api';
     } else if (Platform.isIOS) {
-      return 'http://localhost:3000/api/v1';
+      return 'http://localhost:5050/api';
     } else {
-      return 'http://localhost:3000/api/v1';
+      return 'http://localhost:5050/api';
     }
   }
 

@@ -1,4 +1,7 @@
+import 'package:EliteReurbLap/features/auth/presentation/state/auth_state.dart';
+import 'package:EliteReurbLap/features/auth/presentation/view_model/auth_viewmodel.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class _ImageTile {
   final String url;
@@ -7,19 +10,21 @@ class _ImageTile {
   const _ImageTile({required this.url, required this.label});
 }
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _obscurePassword = true;
-  bool _isLoading = false;
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController(text: 'william@gmail.com');
   final _passwordController = TextEditingController(text: 'password123');
+
+  bool get _isLoading =>
+      ref.watch(authViewModelProvider).status == AuthStatus.loading;
 
   final List<_ImageTile> _imageTiles = [
     _ImageTile(
@@ -63,6 +68,29 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(authViewModelProvider, (prev, next) {
+      if (prev != null && prev.status == AuthStatus.loading) {
+        if (next.status == AuthStatus.authenticated) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Signed in successfully!'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        } else if (next.status == AuthStatus.error &&
+            next.errorMessage != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(next.errorMessage!),
+              backgroundColor: Colors.red.shade600,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    });
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F0EC),
       body: SafeArea(
@@ -455,29 +483,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ? null
                                   : () {
                                       if (_formKey.currentState!.validate()) {
-                                        setState(() => _isLoading = true);
-                                        final messenger = ScaffoldMessenger.of(
-                                          context,
-                                        );
-                                        Future.delayed(
-                                          const Duration(seconds: 2),
-                                          () {
-                                            if (mounted) {
-                                              setState(
-                                                () => _isLoading = false,
-                                              );
-                                              messenger.showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                    'Signed in successfully!',
-                                                  ),
-                                                  behavior:
-                                                      SnackBarBehavior.floating,
-                                                ),
-                                              );
-                                            }
-                                          },
-                                        );
+                                        ref
+                                            .read(
+                                              authViewModelProvider.notifier,
+                                            )
+                                            .login(
+                                              email: _emailController.text
+                                                  .trim(),
+                                              password:
+                                                  _passwordController.text,
+                                            );
                                       }
                                     },
                               style: ElevatedButton.styleFrom(

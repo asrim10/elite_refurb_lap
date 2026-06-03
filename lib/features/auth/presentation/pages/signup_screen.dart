@@ -1,21 +1,26 @@
+import 'package:EliteReurbLap/features/auth/presentation/state/auth_state.dart';
+import 'package:EliteReurbLap/features/auth/presentation/view_model/auth_viewmodel.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SignupScreen extends StatefulWidget {
+class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
 
   @override
-  State<SignupScreen> createState() => _SignupScreenState();
+  ConsumerState<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> {
+class _SignupScreenState extends ConsumerState<SignupScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  bool _isLoading = false;
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController(text: 'John Doe');
   final _emailController = TextEditingController(text: 'name@example.com');
   final _passwordController = TextEditingController(text: 'password123');
   final _confirmPasswordController = TextEditingController(text: 'password123');
+
+  bool get _isLoading =>
+      ref.watch(authViewModelProvider).status == AuthStatus.loading;
 
   @override
   void dispose() {
@@ -78,6 +83,29 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(authViewModelProvider, (prev, next) {
+      if (prev != null && prev.status == AuthStatus.loading) {
+        if (next.status == AuthStatus.registered) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Account created successfully!'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          Navigator.of(context).pop();
+        } else if (next.status == AuthStatus.error &&
+            next.errorMessage != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(next.errorMessage!),
+              backgroundColor: Colors.red.shade600,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    });
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F0EC),
       body: SafeArea(
@@ -467,26 +495,23 @@ class _SignupScreenState extends State<SignupScreen> {
                               ? null
                               : () {
                                   if (_formKey.currentState!.validate()) {
-                                    setState(() => _isLoading = true);
-                                    final messenger =
-                                        ScaffoldMessenger.of(context);
-                                    Future.delayed(
-                                      const Duration(seconds: 2),
-                                      () {
-                                        if (mounted) {
-                                          setState(() => _isLoading = false);
-                                          messenger.showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                'Account created successfully!',
-                                              ),
-                                              behavior:
-                                                  SnackBarBehavior.floating,
-                                            ),
-                                          );
-                                        }
-                                      },
-                                    );
+                                    ref
+                                        .read(authViewModelProvider.notifier)
+                                        .register(
+                                          fullName:
+                                              _nameController.text.trim(),
+                                          email:
+                                              _emailController.text.trim(),
+                                          username: _emailController
+                                              .text
+                                              .trim()
+                                              .split('@')
+                                              .first,
+                                          password:
+                                              _passwordController.text,
+                                          confirmPassword:
+                                              _confirmPasswordController.text,
+                                        );
                                   }
                                 },
                           style: ElevatedButton.styleFrom(
