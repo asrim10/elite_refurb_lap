@@ -1,6 +1,7 @@
 import 'package:EliteReurbLap/app/theme/theme_data.dart';
 import 'package:EliteReurbLap/features/auth/presentation/pages/login_screen.dart';
 import 'package:EliteReurbLap/features/auth/presentation/pages/signup_screen.dart';
+import 'package:EliteReurbLap/features/home/presentation/pages/home_screen.dart';
 import 'package:EliteReurbLap/features/splash/presentation/pages/splash_screen.dart';
 import 'package:EliteReurbLap/features/splash/presentation/pages/splash_screen2.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +23,7 @@ class Myapp extends ConsumerWidget {
         '/splash2': (context) => const SplashScreen2(),
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignupScreen(),
+        '/home': (context) => const HomeScreen(),
       },
     );
   }
