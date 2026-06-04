@@ -1,10 +1,29 @@
+import 'package:EliteReurbLap/features/auth/presentation/view_model/auth_viewmodel.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class HomeHeader extends StatelessWidget {
+class HomeHeader extends ConsumerWidget {
   const HomeHeader({super.key});
 
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good morning';
+    } else if (hour < 17) {
+      return 'Good afternoon';
+    } else {
+      return 'Good evening';
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authViewModelProvider);
+    final user = authState.authEntity;
+    final displayName = user?.fullName ?? 'Guest';
+    final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : '?';
+    final greeting = _greeting();
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(top: 24, left: 20, right: 20),
@@ -24,10 +43,10 @@ class HomeHeader extends StatelessWidget {
                   color: Colors.black,
                   shape: CircleBorder(),
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'W',
-                    style: TextStyle(
+                    initial,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -37,10 +56,10 @@ class HomeHeader extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               // Greeting Text
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'WELCOME BACK',
                     style: TextStyle(
                       color: Color(0xFF4B454A),
@@ -50,8 +69,8 @@ class HomeHeader extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'Good morning, William \u{1F44B}',
-                    style: TextStyle(
+                    '$greeting, $displayName \u{1F44B}',
+                    style: const TextStyle(
                       color: Color(0xFF1A1C1C),
                       fontSize: 16,
                       fontWeight: FontWeight.w400,

@@ -1,4 +1,7 @@
-import 'package:EliteReurbLap/features/splash/presentation/pages/splash_screen2.dart';
+import 'package:EliteReurbLap/core/services/storage/token_service.dart';
+import 'package:EliteReurbLap/core/services/storage/user_session_service.dart';
+import 'package:EliteReurbLap/features/auth/presentation/state/auth_state.dart';
+import 'package:EliteReurbLap/features/auth/presentation/view_model/auth_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,7 +22,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void initState() {
     super.initState();
     _initializeAnimations();
-    _navigateToSplashTwo();
+    _checkAuthAndNavigate();
   }
 
   void _initializeAnimations() {
@@ -39,9 +42,36 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _animationController.forward();
   }
 
-  void _navigateToSplashTwo() {
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
+  void _checkAuthAndNavigate() {
+    Future.delayed(const Duration(seconds: 2), () async {
+      if (!mounted) return;
+
+      final tokenService = ref.read(tokenServiceProvider);
+      final token = tokenService.getToken();
+
+      // No token saved — user needs to log in
+      if (token == null || token.isEmpty) {
+        if (!mounted) return;
+        Navigator.of(context).pushReplacementNamed('/splash2');
+        return;
+      }
+
+      // Token exists — validate it by fetching the user profile
+      final authViewModel = ref.read(authViewModelProvider.notifier);
+      await authViewModel.getProfile();
+
+      if (!mounted) return;
+
+      final authState = ref.read(authViewModelProvider);
+      if (authState.status == AuthStatus.profileLoaded) {
+        // Token is valid — navigate to home
+        Navigator.of(context).pushReplacementNamed('/home');
+      } else {
+        // Token is invalid/expired — clear session and show onboarding
+        final sessionService = ref.read(userSessionServiceProvider);
+        await sessionService.clearSession();
+        await tokenService.removeToken();
+        if (!mounted) return;
         Navigator.of(context).pushReplacementNamed('/splash2');
       }
     });
