@@ -1,3 +1,4 @@
+import 'package:EliteReurbLap/core/services/storage/user_session_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -18,7 +19,7 @@ class _SplashScreen2State extends ConsumerState<SplashScreen2>
   void initState() {
     super.initState();
     _initializeAnimations();
-    _navigateToHome();
+    _checkAuthAndNavigate();
   }
 
   void _initializeAnimations() {
@@ -39,11 +40,13 @@ class _SplashScreen2State extends ConsumerState<SplashScreen2>
     _animationController.forward();
   }
 
-  void _navigateToHome() {
+  void _checkAuthAndNavigate() {
     Future.delayed(const Duration(seconds: 4), () {
-      if (mounted) {
-        // TODO: Replace with your actual home/auth navigation logic
-        // Navigator.of(context).pushReplacementNamed('/home');
+      if (!mounted) return;
+
+      final sessionService = ref.read(userSessionServiceProvider);
+      if (sessionService.isLoggedIn()) {
+        Navigator.of(context).pushReplacementNamed('/home');
       }
     });
   }

@@ -77,7 +77,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               behavior: SnackBarBehavior.floating,
             ),
           );
-          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+          Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
         } else if (next.status == AuthStatus.error &&
             next.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(
