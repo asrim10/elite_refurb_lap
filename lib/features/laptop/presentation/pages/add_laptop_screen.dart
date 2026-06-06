@@ -797,6 +797,7 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
         const AddLaptopSectionLabel(label: 'LOCATION'),
         const SizedBox(height: 6),
         LocationPickerMap(
+          autoDetect: true,
           selectedLocation: _selectedLocation,
           onTap: (point) {
             setState(() => _selectedLocation = point);
