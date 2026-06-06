@@ -17,6 +17,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class AddLaptopScreen extends ConsumerStatefulWidget {
   const AddLaptopScreen({super.key});
@@ -96,6 +97,156 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
   // --- Image Picker ---
 
   Future<void> _pickImage() async {
+    await _showImageSourceModal();
+  }
+
+  Future<void> _showImageSourceModal() async {
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFFF9F9F9),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCDC4CA),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Text(
+                'Add Photo',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1C1C),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Choose a source to add photos',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF6B7280),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSourceOption(
+                      icon: Icons.camera_alt_outlined,
+                      label: 'Camera',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        _pickFromCamera();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildSourceOption(
+                      icon: Icons.photo_library_outlined,
+                      label: 'Gallery',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        _pickFromGallery();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF8A3030),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSourceOption({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEEEEEE),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFCDC4CA)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 36, color: const Color(0xFF4B454A)),
+            const SizedBox(height: 10),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF4B454A),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickFromCamera() async {
+    final status = await Permission.camera.request();
+    if (!status.isGranted) {
+      _showSnackBar('Camera permission is required to take photos');
+      return;
+    }
+
+    final image = await _imagePicker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1200,
+      maxHeight: 1200,
+      imageQuality: 85,
+    );
+    if (image != null) {
+      setState(() => _selectedImages.add(File(image.path)));
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    final status = await Permission.photos.request();
+    if (!status.isGranted) {
+      final storageStatus = await Permission.storage.request();
+      if (!storageStatus.isGranted) {
+        _showSnackBar('Gallery permission is required to select photos');
+        return;
+      }
+    }
+
     final images = await _imagePicker.pickMultiImage(
       maxWidth: 1200,
       maxHeight: 1200,

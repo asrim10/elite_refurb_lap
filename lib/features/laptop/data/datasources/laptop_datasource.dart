@@ -10,7 +10,6 @@ abstract interface class ILaptopRemoteDataSource {
   Future<List<LaptopApiModel>> getSellerListings(String sellerId);
   Future<LaptopApiModel> create({
     required LaptopApiModel laptop,
-    required List<MultipartFile> images,
   });
   Future<LaptopApiModel> update({
     required String id,

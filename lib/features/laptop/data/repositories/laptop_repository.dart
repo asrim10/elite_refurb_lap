@@ -104,7 +104,6 @@ class LaptopRepository implements ILaptopRepository {
       final apiModel = LaptopApiModel.fromEntity(laptop);
       final model = await _laptopRemoteDataSource.create(
         laptop: apiModel,
-        images: [],
       );
       return Right(model.toEntity());
     } on DioException catch (e) {

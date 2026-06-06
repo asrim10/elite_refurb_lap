@@ -66,19 +66,11 @@ class LaptopRemoteDatasource implements ILaptopRemoteDataSource {
   @override
   Future<LaptopApiModel> create({
     required LaptopApiModel laptop,
-    required List<MultipartFile> images,
   }) async {
-    final formData = FormData.fromMap({
-      ...laptop.toJson(),
-      if (images.isNotEmpty) 'images': images,
-    });
-
-    final response = await _apiClient.dio.post(
+    final json = laptop.toJson()..removeWhere((_, v) => v == null);
+    final response = await _apiClient.post(
       ApiEndpoints.laptops,
-      data: formData,
-      options: Options(
-        contentType: 'multipart/form-data',
-      ),
+      data: json,
     );
 
     final data = response.data['data'] as Map<String, dynamic>;
@@ -119,7 +111,8 @@ class LaptopRemoteDatasource implements ILaptopRemoteDataSource {
       formData: formData,
     );
 
-    return response.data['url'] as String;
+    final data = response.data['data'] as Map<String, dynamic>;
+    return data['url'] as String;
   }
 
   @override
