@@ -37,4 +37,10 @@ class ApiEndpoints {
   static const String requestPasswordReset = '/auth/request-password-reset';
   static const String resetPassword = '/auth/reset-password/'; // append /:token
   static const String logout = '/auth/logout';
+
+  // Laptop Endpoints
+  static const String laptops = '/laptops';
+  static const String laptopMyListings = '/laptops/seller/my-listings';
+  static const String laptopById = '/laptops/'; // append /:id
+  static const String laptopBySeller = '/laptops/seller/'; // append /:sellerId
 }
