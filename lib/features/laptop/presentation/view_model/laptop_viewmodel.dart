@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:EliteReurbLap/features/laptop/domain/entities/laptop_entity.dart';
 import 'package:EliteReurbLap/features/laptop/domain/usecases/get_all_laptops_usecase.dart';
 import 'package:EliteReurbLap/features/laptop/domain/usecases/get_laptop_by_id_usecase.dart';
@@ -6,6 +7,7 @@ import 'package:EliteReurbLap/features/laptop/domain/usecases/get_seller_listing
 import 'package:EliteReurbLap/features/laptop/domain/usecases/create_laptop_usecase.dart';
 import 'package:EliteReurbLap/features/laptop/domain/usecases/update_laptop_usecase.dart';
 import 'package:EliteReurbLap/features/laptop/domain/usecases/delete_laptop_usecase.dart';
+import 'package:EliteReurbLap/features/laptop/domain/usecases/upload_image_usecase.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/state/laptop_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -22,6 +24,7 @@ class LaptopViewModel extends Notifier<LaptopState> {
   late final CreateLaptopUsecase _createLaptopUsecase;
   late final UpdateLaptopUsecase _updateLaptopUsecase;
   late final DeleteLaptopUsecase _deleteLaptopUsecase;
+  late final UploadImageUsecase _uploadImageUsecase;
 
   @override
   LaptopState build() {
@@ -32,6 +35,7 @@ class LaptopViewModel extends Notifier<LaptopState> {
     _createLaptopUsecase = ref.read(createLaptopUsecaseProvider);
     _updateLaptopUsecase = ref.read(updateLaptopUsecaseProvider);
     _deleteLaptopUsecase = ref.read(deleteLaptopUsecaseProvider);
+    _uploadImageUsecase = ref.read(uploadImageUsecaseProvider);
     return const LaptopState();
   }
 
@@ -223,6 +227,17 @@ class LaptopViewModel extends Notifier<LaptopState> {
         status: LaptopStatus.deleted,
         laptops: state.laptops.where((l) => l.id != id).toList(),
       ),
+    );
+  }
+
+  Future<String?> uploadImage(MultipartFile image) async {
+    final result = await _uploadImageUsecase(
+      UploadImageParams(image: image),
+    );
+
+    return result.fold(
+      (failure) => null,
+      (url) => url,
     );
   }
 }

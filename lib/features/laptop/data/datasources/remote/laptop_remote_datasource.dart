@@ -109,6 +109,20 @@ class LaptopRemoteDatasource implements ILaptopRemoteDataSource {
   }
 
   @override
+  Future<String> uploadImage(MultipartFile image) async {
+    final formData = FormData.fromMap({
+      'image': image,
+    });
+
+    final response = await _apiClient.uploadFile(
+      '${ApiEndpoints.laptops}/upload',
+      formData: formData,
+    );
+
+    return response.data['url'] as String;
+  }
+
+  @override
   Future<void> delete(String id) async {
     await _apiClient.delete(
       '${ApiEndpoints.laptopById}$id',

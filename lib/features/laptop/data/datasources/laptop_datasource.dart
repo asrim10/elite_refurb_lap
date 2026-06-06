@@ -17,5 +17,6 @@ abstract interface class ILaptopRemoteDataSource {
     required Map<String, dynamic> data,
     List<MultipartFile>? images,
   });
+  Future<String> uploadImage(MultipartFile image);
   Future<void> delete(String id);
 }
