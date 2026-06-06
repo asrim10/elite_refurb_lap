@@ -14,18 +14,11 @@ class HomeBottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 88,
-      padding: const EdgeInsets.only(
-        left: 44.75,
-        right: 44.78,
-        bottom: 3,
-      ),
+      padding: const EdgeInsets.only(left: 44.75, right: 44.78, bottom: 3),
       decoration: ShapeDecoration(
         color: Colors.white,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(
-            width: 1,
-            color: Color(0x4CCDC4CA),
-          ),
+          side: const BorderSide(width: 1, color: Color(0x4CCDC4CA)),
         ),
         shadows: const [
           BoxShadow(

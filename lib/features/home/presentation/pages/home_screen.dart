@@ -3,6 +3,7 @@ import 'package:EliteReurbLap/features/home/presentation/widgets/home_bottom_nav
 import 'package:EliteReurbLap/features/home/presentation/widgets/home_header.dart';
 import 'package:EliteReurbLap/features/home/presentation/widgets/home_search_bar.dart';
 import 'package:EliteReurbLap/features/home/presentation/widgets/laptop_product_card.dart';
+import 'package:EliteReurbLap/features/laptop/presentation/pages/add_laptop_screen.dart';
 import 'package:flutter/material.dart';
 
 final List<LaptopProduct> _products = [
@@ -79,9 +80,19 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: HomeBottomNavBar(
+      bottomNavigationBar:    HomeBottomNavBar(
         selectedIndex: _selectedBottomNav,
-        onTabChanged: (index) => setState(() => _selectedBottomNav = index),
+        onTabChanged: (index) {
+          if (index == 2) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const AddLaptopScreen(),
+              ),
+            );
+          } else {
+            setState(() => _selectedBottomNav = index);
+          }
+        },
       ),
     );
   }
