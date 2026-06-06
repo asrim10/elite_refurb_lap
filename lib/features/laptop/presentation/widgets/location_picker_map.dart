@@ -1,4 +1,6 @@
 import 'package:baato_maps/baato_maps.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 class LocationPickerMap extends StatefulWidget {
@@ -22,6 +24,8 @@ class LocationPickerMap extends StatefulWidget {
 class _LocationPickerMapState extends State<LocationPickerMap> {
   late final BaatoMapController _mapController;
   bool _mapReady = false;
+  bool _styleLoaded = false;
+  BaatoCoordinate? _currentUserLocation;
 
   @override
   void initState() {
@@ -33,24 +37,66 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
     _mapReady = true;
   }
 
-  void _updateMarker() {
-    if (!_mapReady || widget.selectedLocation == null) return;
-    _mapController.markerManager.addMarker(
-      BaatoSymbolOption(
-        geometry: widget.selectedLocation!,
-        textField: 'Selected',
-      ),
-    );
+  void _onStyleLoaded() {
+    _styleLoaded = true;
+    _updateMarker();
   }
 
-  void _handleUseCurrentLocation() {
-    widget.onUseCurrentLocation();
+  void _clearMarkers() {
+    try {
+      _mapController.markerManager.clearMarkers();
+    } catch (_) {
+      // clearMarkers may not be available in all versions
+    }
+  }
+
+  void _updateMarker() {
+    if (!_mapReady || !_styleLoaded || widget.selectedLocation == null) return;
+    try {
+      _clearMarkers();
+      _mapController.markerManager.addMarker(
+        BaatoSymbolOption(
+          geometry: widget.selectedLocation!,
+          textField: 'Selected',
+          iconSize: 1.2,
+        ),
+      );
+    } catch (_) {
+      // Marker manager may not be initialized
+    }
+  }
+
+  Future<void> _handleUseCurrentLocation() async {
+    // If we already have a GPS fix, use it
+    if (_currentUserLocation != null) {
+      widget.onTap(_currentUserLocation!);
+      _mapController.cameraManager.moveTo(
+        _currentUserLocation!,
+        zoom: 15,
+      );
+      return;
+    }
+
+    // Otherwise try the native map's myLocation tracking
+    try {
+      await _mapController.cameraManager.moveToMyLocation();
+    } catch (_) {
+      // Fallback to parent handler
+      widget.onUseCurrentLocation();
+    }
+  }
+
+  void _onUserLocationUpdated(UserLocation location) {
+    _currentUserLocation = BaatoCoordinate(
+      latitude: location.position.latitude,
+      longitude: location.position.longitude,
+    );
   }
 
   @override
   void didUpdateWidget(LocationPickerMap oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!_mapReady) return;
+    if (!_mapReady || !_styleLoaded) return;
     if (widget.selectedLocation != oldWidget.selectedLocation &&
         widget.selectedLocation != null) {
       _mapController.cameraManager.moveTo(
@@ -91,7 +137,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
           fontWeight: FontWeight.w400,
         ),
         decoration: InputDecoration(
-          hintText: 'Search address or tap on map',
+          hintText: 'Enter address or tap on map',
           hintStyle: const TextStyle(
             color: Color(0xFF6B7280),
             fontSize: 16,
@@ -132,10 +178,18 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
               longitude: 85.3240,
             ),
             initialZoom: 12.0,
-            myLocationEnabled: false,
+            myLocationEnabled: true,
+            myLocationTrackingMode: MyLocationTrackingMode.none,
+            style: BaatoMapStyle.breeze,
             onMapCreated: _onMapCreated,
+            onStyleLoadedCallback: _onStyleLoaded,
+            onUserLocationUpdated: _onUserLocationUpdated,
             onMapClick: (_, coordinate, __) {
               widget.onTap(coordinate);
+            },
+            gestureRecognizers: {
+              Factory<OneSequenceGestureRecognizer>(
+                  () => PanGestureRecognizer()),
             },
           ),
           if (widget.selectedLocation != null)

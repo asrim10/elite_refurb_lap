@@ -8,6 +8,7 @@ import 'package:EliteReurbLap/features/laptop/presentation/widgets/condition_chi
 import 'package:EliteReurbLap/features/laptop/presentation/widgets/image_picker_area.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/widgets/location_picker_map.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/widgets/price_field.dart';
+import 'package:EliteReurbLap/features/laptop/presentation/widgets/step_progress_bar.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/widgets/storage_type_chip.dart';
 import 'package:baato_maps/baato_maps.dart';
 import 'package:dio/dio.dart';
@@ -23,7 +24,7 @@ class AddLaptopScreen extends ConsumerStatefulWidget {
 }
 
 class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
-  final _formKey = GlobalKey<FormState>();
+  final _pageController = PageController();
   final _imagePicker = ImagePicker();
 
   // Controllers
@@ -53,9 +54,21 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
   final List<File> _selectedImages = [];
   BaatoCoordinate? _selectedLocation;
   bool _isSubmitting = false;
+  int _currentStep = 0;
+
+  static const _totalSteps = 5;
+
+  static const _steps = [
+    StepInfo(step: 0, label: 'Photos', icon: Icons.photo_library_outlined),
+    StepInfo(step: 1, label: 'Details', icon: Icons.edit_outlined),
+    StepInfo(step: 2, label: 'Pricing', icon: Icons.attach_money_outlined),
+    StepInfo(step: 3, label: 'Specs', icon: Icons.memory_outlined),
+    StepInfo(step: 4, label: 'Finalize', icon: Icons.check_circle_outline),
+  ];
 
   @override
   void dispose() {
+    _pageController.dispose();
     _titleController.dispose();
     _brandController.dispose();
     _modelNameController.dispose();
@@ -78,7 +91,8 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
     super.dispose();
   }
 
-  // Image Picker
+  // --- Image Picker ---
+
   Future<void> _pickImage() async {
     final image = await _imagePicker.pickImage(
       source: ImageSource.gallery,
@@ -95,31 +109,107 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
     setState(() => _selectedImages.removeAt(index));
   }
 
-  // Form Submission
+  // --- Step Navigation ---
+
+  bool _validateStep(int step) {
+    switch (step) {
+      case 0:
+        // Photos are optional — allow proceeding without photos
+        return true;
+      case 1: // Details
+        final title = _titleController.text.trim();
+        final brand = _brandController.text.trim();
+        final model = _modelNameController.text.trim();
+        if (title.length < 3) {
+          _showSnackBar('Title must be at least 3 characters');
+          return false;
+        }
+        if (brand.isEmpty) {
+          _showSnackBar('Brand is required');
+          return false;
+        }
+        if (model.isEmpty) {
+          _showSnackBar('Model name is required');
+          return false;
+        }
+        return true;
+      case 2: // Pricing
+        final priceText = _priceController.text.trim();
+        final price = double.tryParse(priceText);
+        if (price == null || price <= 0) {
+          _showSnackBar('Please enter a valid price');
+          return false;
+        }
+        final desc = _descriptionController.text.trim();
+        if (desc.isNotEmpty && desc.length < 10) {
+          _showSnackBar('Description must be at least 10 characters');
+          return false;
+        }
+        return true;
+      case 3: // Specs
+        final processor = _processorController.text.trim();
+        final ramText = _ramController.text.trim();
+        final storageText = _storageController.text.trim();
+        final displayText = _displaySizeController.text.trim();
+        if (processor.isEmpty) {
+          _showSnackBar('Processor is required');
+          return false;
+        }
+        if (int.tryParse(ramText) == null || int.parse(ramText) <= 0) {
+          _showSnackBar('Please enter a valid RAM size');
+          return false;
+        }
+        if (int.tryParse(storageText) == null || int.parse(storageText) <= 0) {
+          _showSnackBar('Please enter a valid storage size');
+          return false;
+        }
+        if (double.tryParse(displayText) == null ||
+            double.parse(displayText) <= 0) {
+          _showSnackBar('Please enter a valid display size');
+          return false;
+        }
+        final yearText = _yearController.text.trim();
+        if (yearText.isNotEmpty) {
+          final year = int.tryParse(yearText);
+          final currentYear = DateTime.now().year;
+          if (year == null || year < 2000 || year > currentYear) {
+            _showSnackBar('Year must be between 2000 and $currentYear');
+            return false;
+          }
+        }
+        return true;
+      case 4: // Finalize — no validation needed
+        return true;
+      default:
+        return true;
+    }
+  }
+
+  void _goToStep(int step) {
+    if (step < 0 || step >= _totalSteps) return;
+    final goingForward = step > _currentStep;
+    if (goingForward && !_validateStep(_currentStep)) return;
+
+    _pageController.animateToPage(
+      step,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+    setState(() => _currentStep = step);
+  }
+
+  void _nextStep() => _goToStep(_currentStep + 1);
+  void _previousStep() => _goToStep(_currentStep - 1);
+
+  // --- Form Submission ---
+
   Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_isSubmitting) return;
 
     final price = double.tryParse(_priceController.text) ?? 0;
     final ram = int.tryParse(_ramController.text) ?? 0;
     final storage = int.tryParse(_storageController.text) ?? 0;
     final displaySize = double.tryParse(_displaySizeController.text) ?? 0;
-
-    if (price <= 0) {
-      _showSnackBar('Please enter a valid price');
-      return;
-    }
-    if (ram <= 0) {
-      _showSnackBar('Please enter RAM size');
-      return;
-    }
-    if (storage <= 0) {
-      _showSnackBar('Please enter storage size');
-      return;
-    }
-    if (displaySize <= 0) {
-      _showSnackBar('Please enter display size');
-      return;
-    }
 
     final userId =
         ref.read(userSessionServiceProvider).getCurrentUserId() ?? '';
@@ -143,7 +233,7 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
       'description': _descriptionController.text.trim().isNotEmpty
           ? _descriptionController.text.trim()
           : null,
-      'images': <String>[], // uploaded separately via multipart
+      'images': <String>[],
       'processor': _processorController.text.trim(),
       'ram': ram,
       'storage': storage,
@@ -180,17 +270,16 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
           : null,
       'tags': _tagsController.text.trim().isNotEmpty
           ? _tagsController.text
-                .trim()
-                .split(',')
-                .map((t) => t.trim())
-                .where((t) => t.isNotEmpty)
-                .toList()
+              .trim()
+              .split(',')
+              .map((t) => t.trim())
+              .where((t) => t.isNotEmpty)
+              .toList()
           : <String>[],
     };
 
     try {
       final apiClient = ref.read(apiClientProvider);
-      // Upload images first
       final imageUrls = <String>[];
       for (final image in _selectedImages) {
         final formData = FormData.fromMap({
@@ -210,9 +299,7 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
       }
       payload['images'] = imageUrls;
 
-      // Create laptop
       final res = await apiClient.post('/laptops', data: payload);
-
       if (res.statusCode == 200 || res.statusCode == 201) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -228,7 +315,7 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
         _showSnackBar('Failed to post listing. Please try again.');
       }
     } catch (e) {
-      _showSnackBar('Error: ${e.toString()}');
+      _showSnackBar('Error: $e');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -244,6 +331,396 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
       ),
     );
   }
+
+  // --- Build Steps ---
+
+  Widget _buildStepPhotos() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const AddLaptopSectionLabel(label: 'PRODUCT IMAGES'),
+        const SizedBox(height: 4),
+        const Text(
+          'Add up to clear photos of your laptop',
+          style: TextStyle(
+            color: Color(0xFF6B7280),
+            fontSize: 13,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ImagePickerArea(
+          selectedImages: _selectedImages,
+          onPickImage: _pickImage,
+          onRemoveImage: _removeImage,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStepDetails() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AddLaptopTextField(
+          controller: _titleController,
+          label: 'Product Title',
+          hintText: 'e.g. MacBook Pro 14" M2',
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: AddLaptopTextField(
+                controller: _brandController,
+                label: 'Brand',
+                hintText: 'e.g. Apple',
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: AddLaptopTextField(
+                controller: _modelNameController,
+                label: 'Model Name',
+                hintText: 'e.g. MacBook Pro',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        const AddLaptopSectionLabel(label: 'CONDITION'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ConditionChip(
+              label: 'EXCELLENT',
+              value: 'excellent',
+              isSelected: _condition == 'excellent',
+              onTap: () => setState(() => _condition = 'excellent'),
+            ),
+            ConditionChip(
+              label: 'GOOD',
+              value: 'good',
+              isSelected: _condition == 'good',
+              onTap: () => setState(() => _condition = 'good'),
+            ),
+            ConditionChip(
+              label: 'FAIR',
+              value: 'fair',
+              isSelected: _condition == 'fair',
+              onTap: () => setState(() => _condition = 'fair'),
+            ),
+            ConditionChip(
+              label: 'POOR',
+              value: 'poor',
+              isSelected: _condition == 'poor',
+              onTap: () => setState(() => _condition = 'poor'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStepPricing() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const AddLaptopSectionLabel(label: 'SELLING PRICE'),
+        const SizedBox(height: 6),
+        PriceField(
+          controller: _priceController,
+          label: 'Selling Price',
+        ),
+        const SizedBox(height: 16),
+        const AddLaptopSectionLabel(label: 'ORIGINAL PRICE (optional)'),
+        const SizedBox(height: 6),
+        PriceField(
+          controller: _originalPriceController,
+          label: 'Original Price',
+        ),
+        const SizedBox(height: 16),
+        const AddLaptopSectionLabel(label: 'DESCRIPTION (optional)'),
+        const SizedBox(height: 6),
+        const Text(
+          'Describe the condition, any defects, accessories included...',
+          style: TextStyle(color: Color(0xFF6B7280), fontSize: 13),
+        ),
+        const SizedBox(height: 8),
+        AddLaptopTextField(
+          controller: _descriptionController,
+          label: 'Description',
+          hintText: 'Write a detailed description...',
+          expands: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStepSpecs() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AddLaptopTextField(
+          controller: _processorController,
+          label: 'Processor',
+          hintText: 'e.g. Apple M2, i7',
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: AddLaptopTextField(
+                controller: _ramController,
+                label: 'RAM',
+                hintText: 'Size in GB',
+                keyboardType: TextInputType.number,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: AddLaptopTextField(
+                controller: _storageController,
+                label: 'Storage',
+                hintText: 'Size in GB',
+                keyboardType: TextInputType.number,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        const AddLaptopSectionLabel(label: 'STORAGE TYPE'),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            StorageTypeChip(
+              label: 'SSD',
+              value: 'SSD',
+              isSelected: _storageType == 'SSD',
+              onTap: () => setState(() => _storageType = 'SSD'),
+            ),
+            StorageTypeChip(
+              label: 'HDD',
+              value: 'HDD',
+              isSelected: _storageType == 'HDD',
+              onTap: () => setState(() => _storageType = 'HDD'),
+            ),
+            StorageTypeChip(
+              label: 'eMMC',
+              value: 'eMMC',
+              isSelected: _storageType == 'eMMC',
+              onTap: () => setState(() => _storageType = 'eMMC'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: AddLaptopTextField(
+                controller: _displaySizeController,
+                label: 'Display Size',
+                hintText: 'In inches',
+                keyboardType: TextInputType.number,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: AddLaptopTextField(
+                controller: _displayResolutionController,
+                label: 'Resolution',
+                hintText: 'e.g. 2560x1600',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: AddLaptopTextField(
+                controller: _gpuController,
+                label: 'GPU',
+                hintText: 'e.g. M2 Pro (optional)',
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: AddLaptopTextField(
+                controller: _operatingSystemController,
+                label: 'Operating System',
+                hintText: 'e.g. macOS (optional)',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: AddLaptopTextField(
+                controller: _batteryLifeController,
+                label: 'Battery Life',
+                hintText: 'In hours',
+                keyboardType: TextInputType.number,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: AddLaptopTextField(
+                controller: _weightController,
+                label: 'Weight',
+                hintText: 'In kg',
+                keyboardType: TextInputType.number,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: AddLaptopTextField(
+                controller: _yearController,
+                label: 'Year of Manufacture',
+                hintText: 'e.g. 2023',
+                keyboardType: TextInputType.number,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: AddLaptopTextField(
+                controller: _warrantyController,
+                label: 'Warranty',
+                hintText: 'In months',
+                keyboardType: TextInputType.number,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStepFinalize() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Summary preview
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: ShapeDecoration(
+            color: const Color(0xFFF9F9F9),
+            shape: RoundedRectangleBorder(
+              side: const BorderSide(width: 1, color: Color(0xFFCDC4CA)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'SUMMARY',
+                style: TextStyle(
+                  color: Color(0xFF4B454A),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.88,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _buildSummaryRow(
+                'Title', _titleController.text.trim()),
+              _buildSummaryRow(
+                'Brand/Model',
+                '${_brandController.text.trim()} ${_modelNameController.text.trim()}'),
+              _buildSummaryRow('Condition', _condition.toUpperCase()),
+              _buildSummaryRow(
+                'Price',
+                'Rs ${_priceController.text.trim()}'),
+              _buildSummaryRow(
+                'Photos', '${_selectedImages.length} selected'),
+              _buildSummaryRow(
+                'Processor', _processorController.text.trim()),
+              _buildSummaryRow(
+                'RAM/Storage',
+                '${_ramController.text.trim()}GB / ${_storageController.text.trim()}GB $_storageType'),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Location
+        const AddLaptopSectionLabel(label: 'LOCATION'),
+        const SizedBox(height: 6),
+        LocationPickerMap(
+          selectedLocation: _selectedLocation,
+          onTap: (point) {
+            setState(() => _selectedLocation = point);
+          },
+          onUseCurrentLocation: () {
+            setState(() {
+              _selectedLocation = BaatoCoordinate(
+                latitude: 27.7172,
+                longitude: 85.3240,
+              );
+            });
+          },
+          addressController: _addressController,
+        ),
+
+        const SizedBox(height: 16),
+
+        // Tags
+        const AddLaptopSectionLabel(label: 'TAGS (comma-separated)'),
+        const SizedBox(height: 6),
+        AddLaptopTextField(
+          controller: _tagsController,
+          label: 'Tags',
+          hintText: 'e.g. laptop, gaming, ultrabook',
+        ),
+
+
+      ],
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF6B7280),
+                fontSize: 13,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Color(0xFF1A1C1C),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- Main Build ---
 
   @override
   Widget build(BuildContext context) {
@@ -289,435 +766,160 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
               ),
             ),
 
-            // Scrollable Form
+            // Step Progress Bar
+            StepProgressBar(
+              currentStep: _currentStep,
+              totalSteps: _totalSteps,
+              steps: _steps,
+            ),
+
+            // Page View for Steps
             Expanded(
               child: Form(
-                key: _formKey,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  onPageChanged: (page) {
+                    setState(() => _currentStep = page);
+                  },
                   children: [
-                    // PRODUCT IMAGES
-                    const AddLaptopSectionLabel(label: 'PRODUCT IMAGES'),
-                    const SizedBox(height: 8),
-                    ImagePickerArea(
-                      selectedImages: _selectedImages,
-                      onPickImage: _pickImage,
-                      onRemoveImage: _removeImage,
-                    ),
+                    // Step 0: Photos
+                    _buildPage('Add Photos', [
+                      _buildStepPhotos(),
+                    ]),
+                    // Step 1: Details
+                    _buildPage('Basic Details', [
+                      _buildStepDetails(),
+                    ]),
+                    // Step 2: Pricing
+                    _buildPage('Pricing & Description', [
+                      _buildStepPricing(),
+                    ]),
+                    // Step 3: Specs
+                    _buildPage('Technical Specifications', [
+                      _buildStepSpecs(),
+                    ]),
+                    // Step 4: Finalize
+                    _buildPage('Review & Post', [
+                      _buildStepFinalize(),
+                    ]),
+                  ],
+                ),
+              ),
+            ),
 
-                    const SizedBox(height: 24),
+            // Bottom Navigation
+            _buildBottomNav(),
+          ],
+        ),
+      ),
+    );
+  }
 
-                    // PRODUCT TITLE
-                    const AddLaptopSectionLabel(label: 'PRODUCT TITLE'),
-                    const SizedBox(height: 6),
-                    AddLaptopTextField(
-                      controller: _titleController,
-                      hintText: 'e.g. MacBook Pro 14" M2',
-                      validator: (v) => (v == null || v.trim().length < 3)
-                          ? 'Title must be at least 3 characters'
-                          : null,
-                    ),
+  Widget _buildPage(String title, List<Widget> children) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Color(0xFF1A1C1C),
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Divider(color: Color(0xFFE5E0DB), height: 1),
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
+    );
+  }
 
-                    const SizedBox(height: 16),
-
-                    // BRAND & MODEL
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const AddLaptopSectionLabel(label: 'BRAND'),
-                              const SizedBox(height: 6),
-                              AddLaptopTextField(
-                                controller: _brandController,
-                                hintText: 'e.g. Apple',
-                                validator: (v) =>
-                                    (v == null || v.trim().isEmpty)
-                                    ? 'Required'
-                                    : null,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const AddLaptopSectionLabel(label: 'MODEL NAME'),
-                              const SizedBox(height: 6),
-                              AddLaptopTextField(
-                                controller: _modelNameController,
-                                hintText: 'e.g. MacBook Pro',
-                                validator: (v) =>
-                                    (v == null || v.trim().isEmpty)
-                                    ? 'Required'
-                                    : null,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // PRICE
-                    const AddLaptopSectionLabel(label: 'PRICE'),
-                    const SizedBox(height: 6),
-                    PriceField(
-                      controller: _priceController,
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) {
-                          return 'Required';
-                        }
-                        final val = double.tryParse(v);
-                        if (val == null || val <= 0) {
-                          return 'Enter a valid price';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // ORIGINAL PRICE (optional)
-                    const AddLaptopSectionLabel(
-                      label: 'ORIGINAL PRICE (optional)',
-                    ),
-                    const SizedBox(height: 6),
-                    PriceField(controller: _originalPriceController),
-
-                    const SizedBox(height: 16),
-
-                    // CONDITION
-                    const AddLaptopSectionLabel(label: 'CONDITION'),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        ConditionChip(
-                          label: 'EXCELLENT',
-                          value: 'excellent',
-                          isSelected: _condition == 'excellent',
-                          onTap: () => setState(() => _condition = 'excellent'),
-                        ),
-                        ConditionChip(
-                          label: 'GOOD',
-                          value: 'good',
-                          isSelected: _condition == 'good',
-                          onTap: () => setState(() => _condition = 'good'),
-                        ),
-                        ConditionChip(
-                          label: 'FAIR',
-                          value: 'fair',
-                          isSelected: _condition == 'fair',
-                          onTap: () => setState(() => _condition = 'fair'),
-                        ),
-                        ConditionChip(
-                          label: 'POOR',
-                          value: 'poor',
-                          isSelected: _condition == 'poor',
-                          onTap: () => setState(() => _condition = 'poor'),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // DESCRIPTION
-                    const AddLaptopSectionLabel(
-                      label: 'DESCRIPTION (optional)',
-                    ),
-                    const SizedBox(height: 6),
-                    AddLaptopTextField(
-                      controller: _descriptionController,
-                      hintText:
-                          'Describe the condition, any defects, accessories included...',
-                      expands: true,
-                      validator: (v) {
-                        if (v != null &&
-                            v.trim().isNotEmpty &&
-                            v.trim().length < 10) {
-                          return 'Description must be at least 10 characters';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // TECHNICAL SPECIFICATIONS
-                    const AddLaptopSectionLabel(
-                      label: 'TECHNICAL SPECIFICATIONS',
-                    ),
-                    const SizedBox(height: 8),
-                    AddLaptopTextField(
-                      controller: _processorController,
-                      hintText: 'e.g. Apple M2, Intel Core i7-13700H',
-                      validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'Processor is required'
-                          : null,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AddLaptopTextField(
-                            controller: _ramController,
-                            hintText: 'RAM (GB)',
-                            keyboardType: TextInputType.number,
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
-                                return 'Required';
-                              }
-                              final val = int.tryParse(v);
-                              if (val == null || val <= 0) {
-                                return 'Invalid';
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: AddLaptopTextField(
-                            controller: _storageController,
-                            hintText: 'Storage (GB)',
-                            keyboardType: TextInputType.number,
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
-                                return 'Required';
-                              }
-                              final val = int.tryParse(v);
-                              if (val == null || val <= 0) {
-                                return 'Invalid';
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // STORAGE TYPE
-                    const AddLaptopSectionLabel(label: 'STORAGE TYPE'),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        StorageTypeChip(
-                          label: 'SSD',
-                          value: 'SSD',
-                          isSelected: _storageType == 'SSD',
-                          onTap: () => setState(() => _storageType = 'SSD'),
-                        ),
-                        StorageTypeChip(
-                          label: 'HDD',
-                          value: 'HDD',
-                          isSelected: _storageType == 'HDD',
-                          onTap: () => setState(() => _storageType = 'HDD'),
-                        ),
-                        StorageTypeChip(
-                          label: 'eMMC',
-                          value: 'eMMC',
-                          isSelected: _storageType == 'eMMC',
-                          onTap: () => setState(() => _storageType = 'eMMC'),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AddLaptopTextField(
-                            controller: _displaySizeController,
-                            hintText: 'Screen (inches)',
-                            keyboardType: TextInputType.number,
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
-                                return 'Required';
-                              }
-                              final val = double.tryParse(v);
-                              if (val == null || val <= 0) {
-                                return 'Invalid';
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: AddLaptopTextField(
-                            controller: _displayResolutionController,
-                            hintText: 'Resolution',
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AddLaptopTextField(
-                            controller: _gpuController,
-                            hintText: 'GPU (optional)',
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: AddLaptopTextField(
-                            controller: _operatingSystemController,
-                            hintText: 'OS (optional)',
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AddLaptopTextField(
-                            controller: _batteryLifeController,
-                            hintText: 'Battery (hrs)',
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: AddLaptopTextField(
-                            controller: _weightController,
-                            hintText: 'Weight (kg)',
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AddLaptopTextField(
-                            controller: _yearController,
-                            hintText: 'Year (e.g. 2023)',
-                            keyboardType: TextInputType.number,
-                            validator: (v) {
-                              if (v != null && v.trim().isNotEmpty) {
-                                final year = int.tryParse(v);
-                                final currentYear = DateTime.now().year;
-                                if (year == null ||
-                                    year < 2000 ||
-                                    year > currentYear) {
-                                  return 'Year must be between 2000 and $currentYear';
-                                }
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: AddLaptopTextField(
-                            controller: _warrantyController,
-                            hintText: 'Warranty (months)',
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // LOCATION (Baato Maps)
-                    const AddLaptopSectionLabel(label: 'LOCATION'),
-                    const SizedBox(height: 6),
-                    LocationPickerMap(
-                      selectedLocation: _selectedLocation,
-                      onTap: (point) {
-                        setState(() => _selectedLocation = point);
-                      },
-                      onUseCurrentLocation: () {
-                        setState(() {
-                          _selectedLocation = BaatoCoordinate(
-                            latitude: 27.7172,
-                            longitude: 85.3240,
-                          );
-                        });
-                      },
-                      addressController: _addressController,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // TAGS
-                    const AddLaptopSectionLabel(
-                      label: 'TAGS (comma-separated)',
-                    ),
-                    const SizedBox(height: 6),
-                    AddLaptopTextField(
-                      controller: _tagsController,
-                      hintText: 'e.g. laptop, gaming, ultrabook',
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // SUBMIT BUTTON
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: _isSubmitting ? null : _submitForm,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(9999),
-                          ),
-                          elevation: 0,
-                          disabledBackgroundColor: Colors.black.withValues(
-                            alpha: 0.7,
-                          ),
-                        ),
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 200),
-                          child: _isSubmitting
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                  ),
-                                )
-                              : const Text(
-                                  'POST LISTING',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 1.40,
-                                  ),
-                                ),
-                        ),
+  Widget _buildBottomNav() {
+    final isLastStep = _currentStep == _totalSteps - 1;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(width: 1, color: Color(0xFFE5E0DB)),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            // Back button
+            if (_currentStep > 0)
+              Expanded(
+                child: SizedBox(
+                  height: 44,
+                  child: OutlinedButton(
+                    onPressed: _previousStep,
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFFCDC4CA)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(9999),
                       ),
                     ),
+                    child: const Text(
+                      'Back',
+                      style: TextStyle(
+                        color: Color(0xFF4B454A),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            else
+              const Spacer(),
 
-                    const SizedBox(height: 16),
-                  ],
+            if (_currentStep > 0) const SizedBox(width: 12),
+
+            // Next or Submit button
+            Expanded(
+              child: SizedBox(
+                height: 44,
+                child: ElevatedButton(
+                  onPressed: isLastStep
+                      ? (_isSubmitting ? null : _submitForm)
+                      : _nextStep,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(9999),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: isLastStep && _isSubmitting
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            isLastStep ? 'POST LISTING' : 'Next',
+                            key: ValueKey(isLastStep),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                  ),
                 ),
               ),
             ),

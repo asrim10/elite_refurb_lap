@@ -1,0 +1,14 @@
+# Tell GitHub's Linguist to ignore auto-generated platform boilerplate
+# so Dart shows as the primary language.
+
+android/** linguist-vendored
+ios/** linguist-vendored
+macos/** linguist-vendored
+linux/** linguist-vendored
+windows/** linguist-vendored
+web/** linguist-vendored
+
+# Also ignore lock files and build outputs
+pubspec.lock linguist-vendored
+*.pbxproj linguist-vendored
+Podfile.lock linguist-vendored

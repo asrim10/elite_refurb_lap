@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  Baato.configure(
+  await Baato.configure(
     apiKey: 'bpk.VnG8P_nFU74xeDPbG4mRTTFyY1e32zGtWWTXFU9CiEra',
     enableLogging: true,
   );
