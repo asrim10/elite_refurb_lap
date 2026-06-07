@@ -2,12 +2,14 @@ import 'package:baato_maps/baato_maps.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class LocationPickerMap extends StatefulWidget {
   final BaatoCoordinate? selectedLocation;
   final ValueChanged<BaatoCoordinate> onTap;
   final VoidCallback onUseCurrentLocation;
   final TextEditingController addressController;
+  final bool autoDetect;
 
   const LocationPickerMap({
     super.key,
@@ -15,6 +17,7 @@ class LocationPickerMap extends StatefulWidget {
     required this.onTap,
     required this.onUseCurrentLocation,
     required this.addressController,
+    this.autoDetect = false,
   });
 
   @override
@@ -26,6 +29,8 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
   bool _mapReady = false;
   bool _styleLoaded = false;
   BaatoCoordinate? _currentUserLocation;
+  bool _pendingAutoDetect = false;
+  bool _autoDetectAttempted = false;
 
   @override
   void initState() {
@@ -40,6 +45,17 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
   void _onStyleLoaded() {
     _styleLoaded = true;
     _updateMarker();
+    _tryAutoDetect();
+  }
+
+  void _tryAutoDetect() {
+    if (!widget.autoDetect ||
+        widget.selectedLocation != null ||
+        _autoDetectAttempted) {
+      return;
+    }
+    _autoDetectAttempted = true;
+    _triggerAutoDetect();
   }
 
   void _clearMarkers() {
@@ -66,31 +82,122 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
     }
   }
 
-  Future<void> _handleUseCurrentLocation() async {
-    // If we already have a GPS fix, use it
+
+
+  Future<void> _triggerAutoDetect() async {
+    // If we already have a GPS fix, use it immediately
     if (_currentUserLocation != null) {
-      widget.onTap(_currentUserLocation!);
-      _mapController.cameraManager.moveTo(
-        _currentUserLocation!,
-        zoom: 15,
+      _applyLocation(_currentUserLocation!);
+      return;
+    }
+
+    // Set a timeout fallback in case GPS takes too long
+    Future.delayed(const Duration(seconds: 10), () {
+      if (!_pendingAutoDetect) {
+        return;
+      }
+      _pendingAutoDetect = false;
+      widget.onUseCurrentLocation();
+    });
+
+    _pendingAutoDetect = true;
+    try {
+      await _mapController.cameraManager.moveToMyLocation();
+    } catch (_) {
+      if (_pendingAutoDetect) {
+        _pendingAutoDetect = false;
+        widget.onUseCurrentLocation();
+      }
+    }
+  }
+
+  void _applyLocation(BaatoCoordinate coord) {
+    widget.onTap(coord);
+    _updateMarker();
+    _mapController.cameraManager.moveTo(coord, zoom: 15);
+  }
+
+  Future<void> _handleSearchAddress() async {
+    final query = widget.addressController.text.trim();
+    if (query.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter an address to search')),
       );
       return;
     }
 
-    // Otherwise try the native map's myLocation tracking
+    HapticFeedback.lightImpact();
+
+    try {
+      // Step 1: Search for the place
+      final searchResponse = await Baato.api.place.search(
+        query,
+        limit: 1,
+      );
+
+      if (!mounted) return;
+
+      if (searchResponse.data == null || searchResponse.data!.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No results found for this address')),
+        );
+        return;
+      }
+
+      final searchPlace = searchResponse.data!.first;
+
+      // Step 2: Get full place details (which include centroid coordinates)
+      final detailResponse = await Baato.api.place.getDetail(searchPlace.placeId);
+
+      if (!mounted) return;
+
+      if (detailResponse.data == null || detailResponse.data!.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not get location details')),
+        );
+        return;
+      }
+
+      final place = detailResponse.data!.first;
+      final coord = BaatoCoordinate(
+        latitude: place.centroid.latitude,
+        longitude: place.centroid.longitude,
+      );
+
+      // Update the address text with the place name
+      widget.addressController.text = place.name;
+      _applyLocation(coord);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Search failed: $e')),
+      );
+    }
+  }
+
+  Future<void> _handleUseCurrentLocation() async {
+    if (_currentUserLocation != null) {
+      _applyLocation(_currentUserLocation!);
+      return;
+    }
     try {
       await _mapController.cameraManager.moveToMyLocation();
     } catch (_) {
-      // Fallback to parent handler
       widget.onUseCurrentLocation();
     }
   }
 
   void _onUserLocationUpdated(UserLocation location) {
-    _currentUserLocation = BaatoCoordinate(
+    final coord = BaatoCoordinate(
       latitude: location.position.latitude,
       longitude: location.position.longitude,
     );
+    _currentUserLocation = coord;
+    if (_pendingAutoDetect) {
+      _pendingAutoDetect = false;
+      _applyLocation(coord);
+    }
   }
 
   @override
@@ -104,6 +211,13 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
         zoom: 14,
       );
       _updateMarker();
+    }
+    // Re-trigger auto-detect if location was cleared (e.g. navigating back and forth)
+    if (widget.autoDetect &&
+        widget.selectedLocation == null &&
+        oldWidget.selectedLocation != null) {
+      _autoDetectAttempted = false;
+      _tryAutoDetect();
     }
   }
 
@@ -137,7 +251,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
           fontWeight: FontWeight.w400,
         ),
         decoration: InputDecoration(
-          hintText: 'Enter address or tap on map',
+          hintText: 'Search a place or tap on map',
           hintStyle: const TextStyle(
             color: Color(0xFF6B7280),
             fontSize: 16,
@@ -145,15 +259,29 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
           ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-          suffixIcon: IconButton(
-            icon: const Icon(
-              Icons.my_location,
-              color: Color(0xFF705A4E),
-              size: 20,
-            ),
-            onPressed: _handleUseCurrentLocation,
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.search,
+                  color: Color(0xFF705A4E),
+                  size: 20,
+                ),
+                onPressed: _handleSearchAddress,
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.my_location,
+                  color: Color(0xFF705A4E),
+                  size: 20,
+                ),
+                onPressed: _handleUseCurrentLocation,
+              ),
+            ],
           ),
         ),
+        onFieldSubmitted: (_) => _handleSearchAddress(),
       ),
     );
   }
