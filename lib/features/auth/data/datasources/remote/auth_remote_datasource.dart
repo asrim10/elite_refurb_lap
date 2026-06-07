@@ -93,8 +93,9 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
   Future<void> logout() async {
     try {
       await _apiClient.post(ApiEndpoints.logout);
+    } catch (_) {
+      // Server endpoint may not exist — ignore errors and clear locally
     } finally {
-      // Clear local session regardless of server response
       await _tokenService.removeToken();
       await _userSessionService.clearSession();
     }
