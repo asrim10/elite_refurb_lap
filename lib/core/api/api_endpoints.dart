@@ -25,6 +25,29 @@ class ApiEndpoints {
     }
   }
 
+  /// The server host used to serve static files (images, uploads).
+  /// Strips the API path suffix ("/api" or "/api/v1") from [baseUrl].
+  static String get imageBaseUrl {
+    final url = baseUrl;
+    if (url.endsWith('/api/v1')) {
+      return url.substring(0, url.length - '/api/v1'.length);
+    }
+    if (url.endsWith('/api')) {
+      return url.substring(0, url.length - '/api'.length);
+    }
+    return url;
+  }
+
+  /// Converts a relative image path (e.g. "/uploads/file.jpg") to a full URL.
+  static String getImageUrl(String path) {
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    final base = imageBaseUrl;
+    final cleanPath = path.startsWith('/') ? path : '/$path';
+    return '$base$cleanPath';
+  }
+
   static const Duration connectionTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);
 

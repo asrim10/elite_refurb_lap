@@ -873,7 +873,7 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-        Navigator.of(context).pop(true);
+        Navigator.of(context).pushReplacementNamed('/my-listings');
       } else if (state.status == LaptopStatus.error &&
           mounted &&
           _isSubmitting) {
