@@ -1,4 +1,5 @@
 import 'package:EliteReurbLap/app/theme/app_color.dart';
+import 'package:EliteReurbLap/core/api/api_endpoints.dart';
 import 'package:EliteReurbLap/features/auth/domain/entities/auth_entity.dart';
 import 'package:EliteReurbLap/features/auth/presentation/state/auth_state.dart';
 import 'package:EliteReurbLap/features/auth/presentation/view_model/auth_viewmodel.dart';
@@ -23,8 +24,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     ref.listen(authViewModelProvider, (prev, next) {
       if (prev != null && prev.status == AuthStatus.loading) {
         if (next.status == AuthStatus.unauthenticated) {
-          Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-        } else if (next.status == AuthStatus.error && next.errorMessage != null) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/login', (route) => false);
+        } else if (next.status == AuthStatus.error &&
+            next.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(next.errorMessage!),
@@ -69,10 +73,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         decoration: const ShapeDecoration(
           color: Color(0xFFF9F9F9),
           shape: RoundedRectangleBorder(
-            side: BorderSide(
-              width: 1,
-              color: Color(0xFFCDC4CA),
-            ),
+            side: BorderSide(width: 1, color: Color(0xFFCDC4CA)),
           ),
         ),
         child: Row(
@@ -103,10 +104,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final initials = _getInitials(user?.fullName ?? 'U');
     final fullName = user?.fullName ?? 'User';
     final email = user?.email ?? 'user@example.com';
-    final username = user?.username ?? 'username';
+    final imageUrl = user?.imageUrl;
+    final hasImage = imageUrl != null && imageUrl.isNotEmpty;
+    final phoneNumber = user?.phoneNumber;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+      margin: const EdgeInsets.symmetric(horizontal: 12),
       padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
       decoration: ShapeDecoration(
         color: Colors.white,
@@ -124,84 +127,82 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
       child: Column(
         children: [
-          // Avatar
-          Stack(
-            children: [
-              Container(
-                width: 88,
-                height: 88,
-                decoration: ShapeDecoration(
-                  color: AppColors.accent,
-                  shape: const CircleBorder(),
-                ),
-                child: Center(
-                  child: Text(
-                    initials,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.w600,
+          // Avatar — no edit overlay, larger, dark bg
+          Container(
+            width: 88,
+            height: 88,
+            decoration: ShapeDecoration(
+              image: hasImage
+                  ? DecorationImage(
+                      image: NetworkImage(ApiEndpoints.getImageUrl(imageUrl)),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+              color: hasImage ? null : Colors.black,
+              shape: const CircleBorder(),
+            ),
+            child: hasImage
+                ? null
+                : Center(
+                    child: Text(
+                      initials,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-                ),
-              ),
-              // Edit button overlay
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  width: 28,
-                  height: 28,
-                  decoration: ShapeDecoration(
-                    color: Colors.white,
-                    shape: const CircleBorder(),
-                    shadows: const [
-                      BoxShadow(
-                        color: Color(0x1A000000),
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.edit,
-                    size: 14,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ),
-            ],
           ),
           const SizedBox(height: 16),
           // Full Name
           Text(
             fullName,
             style: const TextStyle(
-              color: AppColors.textPrimary,
+              color: Colors.black,
               fontSize: 20,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 4),
-          // Email
-          Text(
-            email,
-            style: const TextStyle(
-              color: AppColors.textMuted,
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
+          const SizedBox(height: 6),
+          // Email — styled as a tappable link
+          GestureDetector(
+            onTap: () {
+              // launch email client if desired
+            },
+            child: Text(
+              email,
+              style: const TextStyle(
+                color: Color(0xFF1A73E8),
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                decoration: TextDecoration.underline,
+                decorationColor: Color(0xFF1A73E8),
+              ),
             ),
           ),
-          const SizedBox(height: 4),
-          // Username
-          Text(
-            '@$username',
-            style: const TextStyle(
-              color: AppColors.accent,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
+          const SizedBox(height: 6),
+          // Phone number row
+          if (phoneNumber != null && phoneNumber.isNotEmpty)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.phone_outlined,
+                  size: 14,
+                  color: Color(0xFF888888),
+                ),
+                const SizedBox(width: 2),
+                Text(
+                  phoneNumber,
+                  style: const TextStyle(
+                    color: Color(0xFF888888),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
             ),
-          ),
         ],
       ),
     );
@@ -231,11 +232,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             icon: Icons.storefront_outlined,
             title: 'My Listings',
             subtitle: 'Active, sold & draft listings',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const MyListingsScreen(),
-              ),
-            ),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const MyListingsScreen())),
           ),
           _buildDivider(),
           _buildMenuItem(
@@ -243,9 +242,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             title: 'Account Information',
             subtitle: 'Name, email, username',
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const EditProfileScreen(),
-              ),
+              MaterialPageRoute(builder: (_) => const EditProfileScreen()),
             ),
           ),
           _buildDivider(),
@@ -269,7 +266,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             subtitle: 'Saved laptops & accessories',
             onTap: () {},
           ),
-
         ],
       ),
     );
@@ -298,11 +294,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: Icon(
-                icon,
-                size: 20,
-                color: AppColors.textSecondary,
-              ),
+              child: Icon(icon, size: 20, color: AppColors.textSecondary),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -350,15 +342,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget _buildDivider() {
     return const Padding(
       padding: EdgeInsets.symmetric(horizontal: 16),
-      child: Divider(
-        height: 1,
-        color: Color(0xFFF0EAE5),
-      ),
+      child: Divider(height: 1, color: Color(0xFFF0EAE5)),
     );
   }
 
   Widget _buildLogoutButton() {
-    final isLoading = ref.watch(authViewModelProvider).status == AuthStatus.loading;
+    final isLoading =
+        ref.watch(authViewModelProvider).status == AuthStatus.loading;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -379,10 +369,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           label: Text(isLoading ? 'Logging out...' : 'Log Out'),
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.buttonDangerBg,
-            side: const BorderSide(
-              color: AppColors.borderAccent,
-              width: 1,
-            ),
+            side: const BorderSide(color: AppColors.borderAccent, width: 1),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
