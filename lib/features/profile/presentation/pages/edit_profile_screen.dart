@@ -18,9 +18,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late TextEditingController _fullNameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
-  late TextEditingController _locationController;
 
-  bool _biometricEnabled = false;
   bool _isSaving = false;
 
   @override
@@ -29,9 +27,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final user = ref.read(authViewModelProvider).authEntity;
     _fullNameController = TextEditingController(text: user?.fullName ?? '');
     _emailController = TextEditingController(text: user?.email ?? '');
-    // Placeholder values — AuthEntity doesn't include phone/location yet
-    _phoneController = TextEditingController(text: '9841234567');
-    _locationController = TextEditingController(text: 'Kathmandu, Nepal');
+    _phoneController = TextEditingController(text: user?.phoneNumber ?? '');
   }
 
   @override
@@ -39,7 +35,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _fullNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _locationController.dispose();
     super.dispose();
   }
 
@@ -106,11 +101,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   _buildFormFields(),
 
                   const SizedBox(height: 24),
-
-                  // Account Security Section
-                  _buildAccountSecuritySection(),
-
-                  const SizedBox(height: 32),
 
                   // Deactivate Account
                   _buildDeactivateAccount(),
@@ -250,9 +240,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
         // Phone Number
         _buildPhoneField(),
-
-        // Location
-        _buildTextField(label: 'Location', controller: _locationController),
       ],
     );
   }
@@ -379,145 +366,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
   }
 
-  Widget _buildAccountSecuritySection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      spacing: 16,
-      children: [
-        const SizedBox(
-          width: double.infinity,
-          child: Text(
-            'Account Security',
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        Container(
-          width: double.infinity,
-          decoration: ShapeDecoration(
-            color: Colors.white,
-            shape: RoundedRectangleBorder(
-              side: const BorderSide(width: 1, color: Color(0xFFCDC4CA)),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            shadows: const [
-              BoxShadow(
-                color: Color(0x05050206),
-                blurRadius: 20,
-                offset: Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              // Change Password
-              InkWell(
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Change Password'),
-                      backgroundColor: AppColors.accent,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  );
-                },
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
-                ),
-                child: Container(
-                  width: double.infinity,
-                  height: 52,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        spacing: 12,
-                        children: [
-                          const Icon(
-                            Icons.lock_outline,
-                            size: 20,
-                            color: Color(0xFF1A1C1C),
-                          ),
-                          const Text(
-                            'Change Password',
-                            style: TextStyle(
-                              color: Color(0xFF1A1C1C),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Icon(
-                        Icons.chevron_right,
-                        size: 20,
-                        color: Color(0xFFCDC4CA),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Container(
-                width: double.infinity,
-                height: 1,
-                color: const Color(0x4CCDC4CA),
-              ),
-              // Biometric Authentication
-              Container(
-                width: double.infinity,
-                height: 52,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      spacing: 12,
-                      children: [
-                        const Icon(
-                          Icons.fingerprint,
-                          size: 20,
-                          color: Color(0xFF1A1C1C),
-                        ),
-                        const Text(
-                          'Biometric Authentication',
-                          style: TextStyle(
-                            color: Color(0xFF1A1C1C),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(
-                      width: 40,
-                      height: 20,
-                      child: Switch.adaptive(
-                        value: _biometricEnabled,
-                        onChanged: (value) {
-                          setState(() => _biometricEnabled = value);
-                        },
-                        activeThumbColor: Colors.black,
-                        activeTrackColor: Colors.black.withValues(alpha: 0.5),
-                        inactiveTrackColor: const Color(0xFFCDC4CA),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+
 
   Widget _buildDeactivateAccount() {
     return Center(
@@ -696,7 +545,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     await ref
         .read(authViewModelProvider.notifier)
-        .updateProfile(fullName: _fullNameController.text.trim());
+        .updateProfile(
+          fullName: _fullNameController.text.trim(),
+          phoneNumber: _phoneController.text.trim(),
+        );
   }
 
   String _getInitials(String fullName) {

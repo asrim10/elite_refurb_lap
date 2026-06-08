@@ -136,6 +136,7 @@ class AuthViewModel extends Notifier<AuthState> {
   Future<void> updateProfile({
     String? fullName,
     String? username,
+    String? phoneNumber,
     String? imageUrl,
   }) async {
     state = state.copyWith(status: AuthStatus.profileUpdating);
@@ -144,6 +145,7 @@ class AuthViewModel extends Notifier<AuthState> {
       UpdateProfileUsecaseParams(
         fullName: fullName,
         username: username,
+        phoneNumber: phoneNumber,
         imageUrl: imageUrl,
       ),
     );

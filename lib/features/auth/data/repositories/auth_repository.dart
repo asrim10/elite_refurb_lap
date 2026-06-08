@@ -17,9 +17,8 @@ final authRepositoryProvider = Provider<IAuthRepository>((ref) {
 class AuthRepository implements IAuthRepository {
   final IAuthRemoteDataSource _authRemoteDataSource;
 
-  AuthRepository({
-    required IAuthRemoteDataSource authRemoteDatasource,
-  }) : _authRemoteDataSource = authRemoteDatasource;
+  AuthRepository({required IAuthRemoteDataSource authRemoteDatasource})
+    : _authRemoteDataSource = authRemoteDatasource;
 
   @override
   Future<Either<Failure, AuthEntity>> getCurrentUser() async {
@@ -96,20 +95,21 @@ class AuthRepository implements IAuthRepository {
   Future<Either<Failure, AuthEntity>> updateProfile({
     String? fullName,
     String? username,
+    String? phoneNumber,
     String? imageUrl,
   }) async {
     try {
       final apiModel = await _authRemoteDataSource.updateProfile(
         fullName: fullName,
         username: username,
+        phoneNumber: phoneNumber,
         imageUrl: imageUrl,
       );
       return Right(apiModel.toEntity());
     } on DioException catch (e) {
       return Left(
         ApiFailure(
-          message:
-              e.response?.data['message'] ?? 'Failed to update profile',
+          message: e.response?.data['message'] ?? 'Failed to update profile',
           statusCode: e.response?.statusCode,
         ),
       );

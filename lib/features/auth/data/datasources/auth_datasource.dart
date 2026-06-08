@@ -9,6 +9,7 @@ abstract interface class IAuthRemoteDataSource {
   Future<AuthApiModel> updateProfile({
     String? fullName,
     String? username,
+    String? phoneNumber,
     String? imageUrl,
   });
 }

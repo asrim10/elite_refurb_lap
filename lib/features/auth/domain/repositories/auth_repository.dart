@@ -11,6 +11,7 @@ abstract interface class IAuthRepository {
   Future<Either<Failure, AuthEntity>> updateProfile({
     String? fullName,
     String? username,
+    String? phoneNumber,
     String? imageUrl,
   });
 }

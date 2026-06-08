@@ -105,6 +105,7 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
   Future<AuthApiModel> updateProfile({
     String? fullName,
     String? username,
+    String? phoneNumber,
     String? imageUrl,
   }) async {
     final response = await _apiClient.put(
@@ -112,6 +113,7 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
       data: {
         if (fullName != null) 'fullName': fullName,
         if (username != null) 'username': username,
+        if (phoneNumber != null) 'phoneNumber': phoneNumber,
         if (imageUrl != null) 'imageUrl': imageUrl,
       },
     );

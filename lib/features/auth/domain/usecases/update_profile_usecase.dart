@@ -10,16 +10,18 @@ import 'package:EliteReurbLap/features/auth/domain/repositories/auth_repository.
 class UpdateProfileUsecaseParams extends Equatable {
   final String? fullName;
   final String? username;
+  final String? phoneNumber;
   final String? imageUrl;
 
   const UpdateProfileUsecaseParams({
     this.fullName,
     this.username,
+    this.phoneNumber,
     this.imageUrl,
   });
 
   @override
-  List<Object?> get props => [fullName, username, imageUrl];
+  List<Object?> get props => [fullName, username, phoneNumber, imageUrl];
 }
 
 //Provider for UpdateProfileUsecase
@@ -39,6 +41,7 @@ class UpdateProfileUsecase
     return _authRepository.updateProfile(
       fullName: params.fullName,
       username: params.username,
+      phoneNumber: params.phoneNumber,
       imageUrl: params.imageUrl,
     );
   }
