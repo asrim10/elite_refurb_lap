@@ -3,6 +3,7 @@ import 'package:EliteReurbLap/features/auth/domain/entities/auth_entity.dart';
 import 'package:EliteReurbLap/features/auth/presentation/state/auth_state.dart';
 import 'package:EliteReurbLap/features/auth/presentation/view_model/auth_viewmodel.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/pages/my_listings_screen.dart';
+import 'package:EliteReurbLap/features/profile/presentation/pages/edit_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -241,14 +242,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             icon: Icons.person_outline,
             title: 'Account Information',
             subtitle: 'Name, email, username',
-            onTap: () {},
-          ),
-          _buildDivider(),
-          _buildMenuItem(
-            icon: Icons.location_on_outlined,
-            title: 'My Addresses',
-            subtitle: 'Manage saved locations',
-            onTap: () {},
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const EditProfileScreen(),
+              ),
+            ),
           ),
           _buildDivider(),
           _buildMenuItem(
@@ -269,13 +267,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             icon: Icons.favorite_outline,
             title: 'Wishlist',
             subtitle: 'Saved laptops & accessories',
-            onTap: () {},
-          ),
-          _buildDivider(),
-          _buildMenuItem(
-            icon: Icons.history,
-            title: 'Order History',
-            subtitle: 'Past purchases & transactions',
             onTap: () {},
           ),
 
