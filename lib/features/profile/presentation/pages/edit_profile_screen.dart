@@ -1,9 +1,16 @@
+import 'dart:io';
+
 import 'package:EliteReurbLap/app/theme/app_color.dart';
+import 'package:EliteReurbLap/core/api/api_client.dart';
+import 'package:EliteReurbLap/core/api/api_endpoints.dart';
 import 'package:EliteReurbLap/features/auth/domain/entities/auth_entity.dart';
 import 'package:EliteReurbLap/features/auth/presentation/state/auth_state.dart';
 import 'package:EliteReurbLap/features/auth/presentation/view_model/auth_viewmodel.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -14,12 +21,15 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _imagePicker = ImagePicker();
 
   late TextEditingController _fullNameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
 
+  File? _pickedImage;
   bool _isSaving = false;
+  bool _isUploadingPhoto = false;
 
   @override
   void initState() {
@@ -46,7 +56,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     ref.listen(authViewModelProvider, (prev, next) {
       if (prev?.status == AuthStatus.profileUpdating &&
-          next.status == AuthStatus.profileUpdated) {
+          next.status == AuthStatus.profileUpdated &&
+          !_isUploadingPhoto) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -125,7 +136,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       padding: const EdgeInsets.only(top: 24, bottom: 32),
       child: Column(
         children: [
-          // Avatar with camera overlay
           Stack(
             children: [
               Container(
@@ -142,18 +152,27 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 child: Container(
                   width: double.infinity,
                   decoration: ShapeDecoration(
-                    image: user?.imageUrl != null
+                    image: _pickedImage != null
                         ? DecorationImage(
-                            image: NetworkImage(user!.imageUrl!),
+                            image: FileImage(_pickedImage!),
                             fit: BoxFit.cover,
                           )
+                        : user?.imageUrl != null
+                            ? DecorationImage(
+                                image: NetworkImage(
+                                  ApiEndpoints.getImageUrl(user!.imageUrl!),
+                                ),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                    color: _pickedImage == null && user?.imageUrl == null
+                        ? AppColors.accent
                         : null,
-                    color: user?.imageUrl == null ? AppColors.accent : null,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(9999),
                     ),
                   ),
-                  child: user?.imageUrl == null
+                  child: _pickedImage == null && user?.imageUrl == null
                       ? Center(
                           child: Text(
                             initials,
@@ -164,7 +183,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                             ),
                           ),
                         )
-                      : null,
+                      : _isUploadingPhoto
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 3,
+                              ),
+                            )
+                          : null,
                 ),
               ),
               // Camera edit button
@@ -172,7 +198,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 right: 4,
                 bottom: 4,
                 child: GestureDetector(
-                  onTap: () => _onChangePhoto(),
+                  onTap: _isUploadingPhoto ? null : () => _onChangePhoto(),
                   child: Container(
                     width: 40,
                     height: 40,
@@ -198,11 +224,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           ),
           const SizedBox(height: 16),
           GestureDetector(
-            onTap: () => _onChangePhoto(),
-            child: const Text(
-              'CHANGE PHOTO',
+            onTap: _isUploadingPhoto ? null : () => _onChangePhoto(),
+            child: Text(
+              _isUploadingPhoto ? 'UPLOADING...' : 'CHANGE PHOTO',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Color(0xFF705A4E),
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
@@ -487,11 +513,226 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   void _onChangePhoto() {
-    // Future: implement image picker
+    _showImageSourceModal();
+  }
+
+  Future<void> _showImageSourceModal() async {
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFFF9F9F9),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCDC4CA),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Text(
+                'Profile Photo',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1C1C),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Choose a source to select a photo',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF6B7280),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSourceOption(
+                      icon: Icons.camera_alt_outlined,
+                      label: 'Camera',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        _pickFromCamera();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildSourceOption(
+                      icon: Icons.photo_library_outlined,
+                      label: 'Gallery',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        _pickFromGallery();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF8A3030),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSourceOption({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEEEEEE),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFCDC4CA)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 36, color: const Color(0xFF4B454A)),
+            const SizedBox(height: 10),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF4B454A),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickFromCamera() async {
+    final status = await Permission.camera.request();
+    if (!status.isGranted) {
+      _showSnackBar('Camera permission is required to take photos');
+      return;
+    }
+
+    final image = await _imagePicker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1200,
+      maxHeight: 1200,
+      imageQuality: 85,
+    );
+    if (image != null) {
+      await _processPickedImage(File(image.path));
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    final status = await Permission.photos.request();
+    if (!status.isGranted) {
+      final storageStatus = await Permission.storage.request();
+      if (!storageStatus.isGranted) {
+        _showSnackBar('Gallery permission is required to select photos');
+        return;
+      }
+    }
+
+    final image = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1200,
+      maxHeight: 1200,
+      imageQuality: 85,
+    );
+    if (image != null) {
+      await _processPickedImage(File(image.path));
+    }
+  }
+
+  Future<void> _processPickedImage(File image) async {
+    // Show local preview immediately
+    setState(() {
+      _pickedImage = image;
+      _isUploadingPhoto = true;
+    });
+
+    try {
+      final apiClient = ref.read(apiClientProvider);
+      final multipartFile = await MultipartFile.fromFile(
+        image.path,
+        filename: 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg',
+      );
+      final formData = FormData.fromMap({'image': multipartFile});
+
+      final response = await apiClient.uploadFile(
+        '${ApiEndpoints.laptops}/upload',
+        formData: formData,
+      );
+
+      final data = response.data['data'] as Map<String, dynamic>;
+      final imageUrl = data['url'] as String;
+
+      // Update profile with the new image URL
+      await ref
+          .read(authViewModelProvider.notifier)
+          .updateProfile(imageUrl: imageUrl);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Profile photo updated'),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      // Revert local preview on failure
+      setState(() => _pickedImage = null);
+      if (mounted) {
+        _showSnackBar('Failed to upload photo: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingPhoto = false);
+      }
+    }
+  }
+
+  void _showSnackBar(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Photo picker coming soon'),
-        backgroundColor: AppColors.accent,
+        content: Text(message),
+        backgroundColor: AppColors.error,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
