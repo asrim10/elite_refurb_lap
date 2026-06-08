@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:EliteReurbLap/core/api/api_endpoints.dart';
 import 'package:EliteReurbLap/core/services/storage/user_session_service.dart';
 import 'package:EliteReurbLap/features/laptop/domain/entities/laptop_entity.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/view_model/laptop_viewmodel.dart';
@@ -20,7 +21,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class AddLaptopScreen extends ConsumerStatefulWidget {
-  const AddLaptopScreen({super.key});
+  final LaptopEntity? editLaptop;
+
+  const AddLaptopScreen({super.key, this.editLaptop});
 
   @override
   ConsumerState<AddLaptopScreen> createState() => _AddLaptopScreenState();
@@ -55,11 +58,61 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
   String _condition = 'excellent';
   String _storageType = 'SSD';
   final List<File> _selectedImages = [];
+  final List<String> _existingImageUrls = [];
+  final Set<String> _removedImageUrls = {};
   BaatoCoordinate? _selectedLocation;
   bool _isSubmitting = false;
   int _currentStep = 0;
 
+  bool get _isEditMode => widget.editLaptop != null;
+
   static const _totalSteps = 5;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEditMode) {
+      _prefillFromLaptop(widget.editLaptop!);
+    }
+  }
+
+  void _prefillFromLaptop(LaptopEntity laptop) {
+    _titleController.text = laptop.title;
+    _brandController.text = laptop.brand;
+    _modelNameController.text = laptop.modelName;
+    _priceController.text = laptop.price.toStringAsFixed(laptop.price == laptop.price.roundToDouble() ? 0 : 2);
+    if (laptop.originalPrice != null) {
+      _originalPriceController.text =
+          laptop.originalPrice!.toStringAsFixed(laptop.originalPrice! == laptop.originalPrice!.roundToDouble() ? 0 : 2);
+    }
+    if (laptop.description != null && laptop.description!.isNotEmpty) {
+      _descriptionController.text = laptop.description!;
+    }
+    _processorController.text = laptop.processor;
+    _ramController.text = laptop.ram.toString();
+    _storageController.text = laptop.storage.toString();
+    _displaySizeController.text = laptop.displaySize.toStringAsFixed(laptop.displaySize == laptop.displaySize.roundToDouble() ? 0 : 1);
+    if (laptop.displayResolution != null) {
+      _displayResolutionController.text = laptop.displayResolution!;
+    }
+    if (laptop.gpu != null) _gpuController.text = laptop.gpu!;
+    if (laptop.operatingSystem != null) _operatingSystemController.text = laptop.operatingSystem!;
+    if (laptop.batteryLife != null) _batteryLifeController.text = laptop.batteryLife!.toString();
+    if (laptop.weight != null) _weightController.text = laptop.weight!.toString();
+    if (laptop.yearOfManufacture != null) _yearController.text = laptop.yearOfManufacture!.toString();
+    if (laptop.warrantyMonths != null) _warrantyController.text = laptop.warrantyMonths!.toString();
+    if (laptop.location?.address != null) _addressController.text = laptop.location!.address!;
+    if (laptop.tags.isNotEmpty) _tagsController.text = laptop.tags.join(', ');
+    _condition = laptop.condition;
+    _storageType = laptop.storageType;
+    _existingImageUrls.addAll(laptop.images);
+    if (laptop.location != null) {
+      _selectedLocation = BaatoCoordinate(
+        latitude: laptop.location!.lat,
+        longitude: laptop.location!.lng,
+      );
+    }
+  }
 
   static const _steps = [
     StepInfo(step: 0, label: 'Photos', icon: Icons.photo_library_outlined),
@@ -94,7 +147,7 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
     super.dispose();
   }
 
-  // --- Image Picker ---
+  // Image Picker
 
   Future<void> _pickImage() async {
     await _showImageSourceModal();
@@ -263,7 +316,13 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
     setState(() => _selectedImages.removeAt(index));
   }
 
-  // --- Step Navigation ---
+  void _removeExistingImage(String url) {
+    setState(() {
+      _removedImageUrls.add(url);
+    });
+  }
+
+  // Step Navigation
 
   bool _validateStep(int step) {
     switch (step) {
@@ -355,7 +414,7 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
   void _nextStep() => _goToStep(_currentStep + 1);
   void _previousStep() => _goToStep(_currentStep - 1);
 
-  // --- Form Submission ---
+  // Form Submission
 
   Future<void> _submitForm() async {
     if (_isSubmitting) return;
@@ -365,94 +424,167 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
     final storage = int.tryParse(_storageController.text) ?? 0;
     final displaySize = double.tryParse(_displaySizeController.text) ?? 0;
 
-    final userId =
-        ref.read(userSessionServiceProvider).getCurrentUserId() ?? '';
-    if (userId.isEmpty) {
-      _showSnackBar('User session not found. Please login again.');
-      return;
-    }
-
     setState(() => _isSubmitting = true);
 
     try {
       final viewmodel = ref.read(laptopViewModelProvider.notifier);
 
-      // Upload images
-      final imageUrls = <String>[];
-      for (final image in _selectedImages) {
-        final multipartFile = await MultipartFile.fromFile(
-          image.path,
-          filename: image.path.split('/').last,
+      if (_isEditMode) {
+        // EDIT MODE: Update existing listing
+        // Upload any new images first
+        final newImageUrls = <String>[];
+        for (final image in _selectedImages) {
+          final multipartFile = await MultipartFile.fromFile(
+            image.path,
+            filename: image.path.split('/').last,
+          );
+          final url = await viewmodel.uploadImage(multipartFile);
+          if (url != null) newImageUrls.add(url);
+        }
+
+        // Build final image list: kept existing + newly uploaded
+        final keptExisting = _existingImageUrls
+            .where((url) => !_removedImageUrls.contains(url))
+            .toList();
+        final finalImages = [...keptExisting, ...newImageUrls];
+
+        final updateData = <String, dynamic>{
+          'title': _titleController.text.trim(),
+          'brand': _brandController.text.trim(),
+          'modelName': _modelNameController.text.trim(),
+          'price': price,
+          if (_originalPriceController.text.isNotEmpty)
+            'originalPrice': double.tryParse(_originalPriceController.text),
+          'condition': _condition,
+          if (_descriptionController.text.trim().isNotEmpty)
+            'description': _descriptionController.text.trim(),
+          'processor': _processorController.text.trim(),
+          'ram': ram,
+          'storage': storage,
+          'storageType': _storageType,
+          'displaySize': displaySize,
+          if (_displayResolutionController.text.trim().isNotEmpty)
+            'displayResolution': _displayResolutionController.text.trim(),
+          if (_gpuController.text.trim().isNotEmpty)
+            'gpu': _gpuController.text.trim(),
+          if (_operatingSystemController.text.trim().isNotEmpty)
+            'operatingSystem': _operatingSystemController.text.trim(),
+          if (_batteryLifeController.text.isNotEmpty)
+            'batteryLife': double.tryParse(_batteryLifeController.text),
+          if (_weightController.text.isNotEmpty)
+            'weight': double.tryParse(_weightController.text),
+          if (_yearController.text.isNotEmpty)
+            'yearOfManufacture': int.tryParse(_yearController.text),
+          if (_warrantyController.text.isNotEmpty)
+            'warrantyMonths': int.tryParse(_warrantyController.text) ?? 0,
+          if (_selectedLocation != null) ...{
+            'location': {
+              'lat': _selectedLocation!.latitude,
+              'lng': _selectedLocation!.longitude,
+              if (_addressController.text.trim().isNotEmpty)
+                'address': _addressController.text.trim(),
+            },
+          },
+          if (_tagsController.text.trim().isNotEmpty)
+            'tags': _tagsController.text
+                .trim()
+                .split(',')
+                .map((t) => t.trim())
+                .where((t) => t.isNotEmpty)
+                .toList(),
+          'images': finalImages,
+        };
+
+        await viewmodel.updateLaptop(
+          id: widget.editLaptop!.id!,
+          data: updateData,
         );
-        final url = await viewmodel.uploadImage(multipartFile);
-        if (url != null) imageUrls.add(url);
-      }
+      } else {
+        // CREATE MODE: New listing
+        final userId =
+            ref.read(userSessionServiceProvider).getCurrentUserId() ?? '';
+        if (userId.isEmpty) {
+          _showSnackBar('User session not found. Please login again.');
+          setState(() => _isSubmitting = false);
+          return;
+        }
 
-      // Build location
-      LaptopLocationEntity? location;
-      if (_selectedLocation != null) {
-        location = LaptopLocationEntity(
-          lat: _selectedLocation!.latitude,
-          lng: _selectedLocation!.longitude,
-          address: _addressController.text.trim(),
+        // Upload images
+        final imageUrls = <String>[];
+        for (final image in _selectedImages) {
+          final multipartFile = await MultipartFile.fromFile(
+            image.path,
+            filename: image.path.split('/').last,
+          );
+          final url = await viewmodel.uploadImage(multipartFile);
+          if (url != null) imageUrls.add(url);
+        }
+
+        // Build location
+        LaptopLocationEntity? location;
+        if (_selectedLocation != null) {
+          location = LaptopLocationEntity(
+            lat: _selectedLocation!.latitude,
+            lng: _selectedLocation!.longitude,
+            address: _addressController.text.trim(),
+          );
+        }
+
+        // Parse tags
+        final tags = _tagsController.text.trim().isNotEmpty
+            ? _tagsController.text
+                .trim()
+                .split(',')
+                .map((t) => t.trim())
+                .where((t) => t.isNotEmpty)
+                .toList()
+            : <String>[];
+
+        await viewmodel.createLaptop(
+          title: _titleController.text.trim(),
+          brand: _brandController.text.trim(),
+          modelName: _modelNameController.text.trim(),
+          price: price,
+          originalPrice: _originalPriceController.text.isNotEmpty
+              ? double.tryParse(_originalPriceController.text)
+              : null,
+          condition: _condition,
+          description: _descriptionController.text.trim().isNotEmpty
+              ? _descriptionController.text.trim()
+              : null,
+          images: imageUrls,
+          processor: _processorController.text.trim(),
+          ram: ram,
+          storage: storage,
+          storageType: _storageType,
+          displaySize: displaySize,
+          displayResolution:
+              _displayResolutionController.text.trim().isNotEmpty
+                  ? _displayResolutionController.text.trim()
+                  : null,
+          gpu: _gpuController.text.trim().isNotEmpty
+              ? _gpuController.text.trim()
+              : null,
+          operatingSystem: _operatingSystemController.text.trim().isNotEmpty
+              ? _operatingSystemController.text.trim()
+              : null,
+          batteryLife: _batteryLifeController.text.isNotEmpty
+              ? double.tryParse(_batteryLifeController.text)
+              : null,
+          weight: _weightController.text.isNotEmpty
+              ? double.tryParse(_weightController.text)
+              : null,
+          sellerId: userId,
+          yearOfManufacture: _yearController.text.isNotEmpty
+              ? int.tryParse(_yearController.text)
+              : null,
+          warrantyMonths: _warrantyController.text.isNotEmpty
+              ? int.tryParse(_warrantyController.text) ?? 0
+              : null,
+          location: location,
+          tags: tags,
         );
       }
-
-      // Parse tags
-      final tags = _tagsController.text.trim().isNotEmpty
-          ? _tagsController.text
-              .trim()
-              .split(',')
-              .map((t) => t.trim())
-              .where((t) => t.isNotEmpty)
-              .toList()
-          : <String>[];
-
-      // Create listing
-      await viewmodel.createLaptop(
-        title: _titleController.text.trim(),
-        brand: _brandController.text.trim(),
-        modelName: _modelNameController.text.trim(),
-        price: price,
-        originalPrice: _originalPriceController.text.isNotEmpty
-            ? double.tryParse(_originalPriceController.text)
-            : null,
-        condition: _condition,
-        description: _descriptionController.text.trim().isNotEmpty
-            ? _descriptionController.text.trim()
-            : null,
-        images: imageUrls,
-        processor: _processorController.text.trim(),
-        ram: ram,
-        storage: storage,
-        storageType: _storageType,
-        displaySize: displaySize,
-        displayResolution:
-            _displayResolutionController.text.trim().isNotEmpty
-                ? _displayResolutionController.text.trim()
-                : null,
-        gpu: _gpuController.text.trim().isNotEmpty
-            ? _gpuController.text.trim()
-            : null,
-        operatingSystem: _operatingSystemController.text.trim().isNotEmpty
-            ? _operatingSystemController.text.trim()
-            : null,
-        batteryLife: _batteryLifeController.text.isNotEmpty
-            ? double.tryParse(_batteryLifeController.text)
-            : null,
-        weight: _weightController.text.isNotEmpty
-            ? double.tryParse(_weightController.text)
-            : null,
-        sellerId: userId,
-        yearOfManufacture: _yearController.text.isNotEmpty
-            ? int.tryParse(_yearController.text)
-            : null,
-        warrantyMonths: _warrantyController.text.isNotEmpty
-            ? int.tryParse(_warrantyController.text) ?? 0
-            : null,
-        location: location,
-        tags: tags,
-      );
     } catch (e) {
       _showSnackBar('Error: $e');
       if (mounted) setState(() => _isSubmitting = false);
@@ -470,9 +602,144 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
     );
   }
 
-  // --- Build Steps ---
+  // Build Steps
+
+  Widget _buildEditImageGrid() {
+    final keptExisting =
+        _existingImageUrls.where((url) => !_removedImageUrls.contains(url)).toList();
+    final totalItems = keptExisting.length + _selectedImages.length + 1;
+
+    return SizedBox(
+      height: 100,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: totalItems,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          // Add button at the end
+          if (index == totalItems - 1) {
+            return _buildAddImageButton();
+          }
+          // Existing image (show before new images)
+          if (index < keptExisting.length) {
+            final url = keptExisting[index];
+            return _buildExistingImageThumb(url);
+          }
+          // Newly selected image
+          final fileIndex = index - keptExisting.length;
+          final file = _selectedImages[fileIndex];
+          return _buildNewImageThumb(file, fileIndex);
+        },
+      ),
+    );
+  }
+
+  Widget _buildExistingImageThumb(String url) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.network(
+            ApiEndpoints.getImageUrl(url),
+            width: 100,
+            height: 100,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              width: 100,
+              height: 100,
+              color: const Color(0xFFE8E0D8),
+              child: const Icon(Icons.image, color: Color(0xFF9A8174)),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: GestureDetector(
+            onTap: () => _removeExistingImage(url),
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: const ShapeDecoration(
+                color: Color(0xCC000000),
+                shape: CircleBorder(),
+              ),
+              child: const Icon(Icons.close, size: 16, color: Colors.white),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNewImageThumb(File file, int index) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.file(file, width: 100, height: 100, fit: BoxFit.cover),
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: GestureDetector(
+            onTap: () => _removeImage(index),
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: const ShapeDecoration(
+                color: Color(0xCC000000),
+                shape: CircleBorder(),
+              ),
+              child: const Icon(Icons.close, size: 16, color: Colors.white),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAddImageButton() {
+    return GestureDetector(
+      onTap: _pickImage,
+      child: Container(
+        width: 100,
+        height: 100,
+        decoration: ShapeDecoration(
+          color: const Color(0xFFEEEEEE),
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(width: 2, color: Color(0xFFCDC4CA)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: const Icon(
+          Icons.add_photo_alternate_outlined,
+          size: 32,
+        ),
+      ),
+    );
+  }
 
   Widget _buildStepPhotos() {
+    if (_isEditMode) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const AddLaptopSectionLabel(label: 'PRODUCT IMAGES'),
+          const SizedBox(height: 4),
+          const Text(
+            'Add, remove, or rearrange photos',
+            style: TextStyle(
+              color: Color(0xFF6B7280),
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildEditImageGrid(),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -859,26 +1126,45 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
     );
   }
 
-  // --- Main Build ---
+  // Main Build
 
   @override
   Widget build(BuildContext context) {
     ref.listen<LaptopState>(laptopViewModelProvider, (prev, state) {
-      if (state.status == LaptopStatus.created && mounted && _isSubmitting) {
-        setState(() => _isSubmitting = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Listing posted successfully!'),
-            backgroundColor: Color(0xFF2D6A3F),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        Navigator.of(context).pushReplacementNamed('/my-listings');
-      } else if (state.status == LaptopStatus.error &&
-          mounted &&
-          _isSubmitting) {
-        setState(() => _isSubmitting = false);
-        _showSnackBar(state.errorMessage ?? 'Failed to post listing');
+      if (_isEditMode) {
+        if (state.status == LaptopStatus.updated && mounted && _isSubmitting) {
+          setState(() => _isSubmitting = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Listing updated successfully!'),
+              backgroundColor: Color(0xFF2D6A3F),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          Navigator.of(context).pop();
+        } else if (state.status == LaptopStatus.error &&
+            mounted &&
+            _isSubmitting) {
+          setState(() => _isSubmitting = false);
+          _showSnackBar(state.errorMessage ?? 'Failed to update listing');
+        }
+      } else {
+        if (state.status == LaptopStatus.created && mounted && _isSubmitting) {
+          setState(() => _isSubmitting = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Listing posted successfully!'),
+              backgroundColor: Color(0xFF2D6A3F),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          Navigator.of(context).pushReplacementNamed('/my-listings');
+        } else if (state.status == LaptopStatus.error &&
+            mounted &&
+            _isSubmitting) {
+          setState(() => _isSubmitting = false);
+          _showSnackBar(state.errorMessage ?? 'Failed to post listing');
+        }
       }
     });
 
@@ -909,8 +1195,8 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
                     ),
                   ),
                   const Spacer(),
-                  const Text(
-                    'Post Listings',
+                  Text(
+                    _isEditMode ? 'Edit Listing' : 'Post Listings',
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 22,
@@ -1070,7 +1356,9 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
                             ),
                           )
                         : Text(
-                            isLastStep ? 'POST LISTING' : 'Next',
+                            isLastStep
+                                ? (_isEditMode ? 'UPDATE LISTING' : 'POST LISTING')
+                                : 'Next',
                             key: ValueKey(isLastStep),
                             style: const TextStyle(
                               fontSize: 14,

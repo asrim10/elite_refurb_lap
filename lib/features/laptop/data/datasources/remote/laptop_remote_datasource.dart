@@ -83,17 +83,31 @@ class LaptopRemoteDatasource implements ILaptopRemoteDataSource {
     required Map<String, dynamic> data,
     List<MultipartFile>? images,
   }) async {
-    final formData = FormData.fromMap({
-      ...data,
-      if (images != null && images.isNotEmpty) 'images': images,
-    });
+    final hasImages = images != null && images.isNotEmpty;
 
+    if (hasImages) {
+      // Use FormData when uploading images
+      final formData = FormData.fromMap({
+        ...data,
+        'images': images,
+      });
+
+      final response = await _apiClient.dio.patch(
+        '${ApiEndpoints.laptopById}$id',
+        data: formData,
+        options: Options(
+          contentType: 'multipart/form-data',
+        ),
+      );
+
+      final result = response.data['data'] as Map<String, dynamic>;
+      return LaptopApiModel.fromJson(result);
+    }
+
+    // Send as JSON to preserve number/array types
     final response = await _apiClient.dio.patch(
       '${ApiEndpoints.laptopById}$id',
-      data: formData,
-      options: Options(
-        contentType: 'multipart/form-data',
-      ),
+      data: data,
     );
 
     final result = response.data['data'] as Map<String, dynamic>;

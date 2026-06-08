@@ -312,10 +312,11 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
             return _ListingCard(
               laptop: filteredLaptops[index],
               onEdit: () {
-                // Navigate to edit screen with laptop data
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => const AddLaptopScreen(),
+                    builder: (_) => AddLaptopScreen(
+                      editLaptop: filteredLaptops[index],
+                    ),
                   ),
                 );
               },
@@ -491,7 +492,7 @@ class _ListingCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '\$${laptop.price.toStringAsFixed(laptop.price == laptop.price.roundToDouble() ? 0 : 2)}',
+                      'Rs. ${laptop.price.toStringAsFixed(laptop.price == laptop.price.roundToDouble() ? 0 : 2)}',
                       style: const TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -665,7 +666,7 @@ class _ListingCard extends StatelessWidget {
         child: const Icon(
           Icons.delete_outline,
           size: 18,
-          color: Color(0xFF4B454A),
+          color: Colors.red,
         ),
       ),
     );
