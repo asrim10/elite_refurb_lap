@@ -49,11 +49,9 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
   Widget _buildFab() {
     return GestureDetector(
       onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const AddLaptopScreen(),
-          ),
-        );
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const AddLaptopScreen()));
       },
       child: Container(
         width: 50,
@@ -78,11 +76,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
             ),
           ],
         ),
-        child: const Icon(
-          Icons.add,
-          color: Colors.white,
-          size: 24,
-        ),
+        child: const Icon(Icons.add, color: Colors.white, size: 24),
       ),
     );
   }
@@ -130,11 +124,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
                 borderRadius: BorderRadius.circular(9999),
               ),
             ),
-            child: const Icon(
-              Icons.more_horiz,
-              size: 24,
-              color: Colors.black,
-            ),
+            child: const Icon(Icons.more_horiz, size: 24, color: Colors.black),
           ),
         ],
       ),
@@ -172,16 +162,16 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
     );
   }
 
-  Widget _buildFilterChip({
-    required String label,
-    required bool isSelected,
-  }) {
+  Widget _buildFilterChip({required String label, required bool isSelected}) {
     return GestureDetector(
       onTap: () {
         setState(() {
           _selectedFilter = switch (label.startsWith('Active')) {
             true => ListingFilter.active,
-            false => label.startsWith('Sold') ? ListingFilter.sold : ListingFilter.drafts,
+            false =>
+              label.startsWith('Sold')
+                  ? ListingFilter.sold
+                  : ListingFilter.drafts,
           };
         });
       },
@@ -224,9 +214,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
     switch (state.status) {
       case LaptopStatus.loading:
         return const Center(
-          child: CircularProgressIndicator(
-            color: Color(0xFF9A8174),
-          ),
+          child: CircularProgressIndicator(color: Color(0xFF9A8174)),
         );
       case LaptopStatus.error:
         return Center(
@@ -282,8 +270,8 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
                   _selectedFilter == ListingFilter.active
                       ? 'No active listings yet'
                       : _selectedFilter == ListingFilter.sold
-                          ? 'No sold items yet'
-                          : 'No drafts yet',
+                      ? 'No sold items yet'
+                      : 'No drafts yet',
                   style: const TextStyle(
                     color: Color(0xFF4B454A),
                     fontSize: 16,
@@ -314,9 +302,8 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
               onEdit: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => AddLaptopScreen(
-                      editLaptop: filteredLaptops[index],
-                    ),
+                    builder: (_) =>
+                        AddLaptopScreen(editLaptop: filteredLaptops[index]),
                   ),
                 );
               },
@@ -389,10 +376,7 @@ class _ListingCard extends StatelessWidget {
       decoration: ShapeDecoration(
         color: Colors.white,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(
-            width: 1,
-            color: Color(0x4CC4B0A4),
-          ),
+          side: const BorderSide(width: 1, color: Color(0x4CC4B0A4)),
           borderRadius: BorderRadius.circular(12),
         ),
         shadows: const [
@@ -412,41 +396,33 @@ class _ListingCard extends StatelessWidget {
           // Image Section
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(color: Color(0xFFF5F0EC)),
+            height: 180,
+            decoration: const BoxDecoration(color: Color(0xFFE8E0D8)),
             child: Stack(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: SizedBox(
-                    width: double.infinity,
+                Positioned.fill(
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
                     child: Image.network(
                       imageUrl,
-                      height: 180,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
-                        return Container(
-                          height: 180,
-                          color: const Color(0xFFE8E0D8),
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Color(0xFF9A8174),
-                            ),
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFF9A8174),
                           ),
                         );
                       },
                       errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 180,
-                          color: const Color(0xFFE8E0D8),
-                          child: const Center(
-                            child: Icon(
-                              Icons.laptop_mac,
-                              size: 48,
-                              color: Color(0xFF9A8174),
-                            ),
+                        return const Center(
+                          child: Icon(
+                            Icons.laptop_mac,
+                            size: 48,
+                            color: Color(0xFF9A8174),
                           ),
                         );
                       },
@@ -532,7 +508,10 @@ class _ListingCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         spacing: 16,
                         children: [
-                          _buildStat(icon: Icons.visibility_outlined, value: '0'),
+                          _buildStat(
+                            icon: Icons.visibility_outlined,
+                            value: '0',
+                          ),
                           _buildStat(icon: Icons.favorite_border, value: '0'),
                         ],
                       ),
@@ -542,11 +521,9 @@ class _ListingCard extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.start,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         spacing: 8,
-                        children: [
-                          _buildEditButton(),
-                          _buildDeleteButton(),
-                        ],
-                      ),],
+                        children: [_buildEditButton(), _buildDeleteButton()],
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -575,7 +552,9 @@ class _ListingCard extends StatelessWidget {
             width: 6,
             height: 6,
             decoration: ShapeDecoration(
-              color: isActive ? const Color(0xFF2E7D32) : const Color(0xFFF57C00),
+              color: isActive
+                  ? const Color(0xFF2E7D32)
+                  : const Color(0xFFF57C00),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(9999),
               ),
@@ -584,7 +563,9 @@ class _ListingCard extends StatelessWidget {
           Text(
             isActive ? 'ACTIVE' : status.toUpperCase(),
             style: TextStyle(
-              color: isActive ? const Color(0xFF2E7D32) : const Color(0xFFF57C00),
+              color: isActive
+                  ? const Color(0xFF2E7D32)
+                  : const Color(0xFFF57C00),
               fontSize: 10,
               fontFamily: 'Inter',
               fontWeight: FontWeight.w400,
@@ -630,9 +611,7 @@ class _ListingCard extends StatelessWidget {
         ),
         decoration: ShapeDecoration(
           color: Colors.black,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: const Text(
           'EDIT',
@@ -656,18 +635,11 @@ class _ListingCard extends StatelessWidget {
         padding: const EdgeInsets.all(8),
         decoration: ShapeDecoration(
           shape: RoundedRectangleBorder(
-            side: const BorderSide(
-              width: 1,
-              color: Color(0xFFCDC4CA),
-            ),
+            side: const BorderSide(width: 1, color: Color(0xFFCDC4CA)),
             borderRadius: BorderRadius.circular(8),
           ),
         ),
-        child: const Icon(
-          Icons.delete_outline,
-          size: 18,
-          color: Colors.red,
-        ),
+        child: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
       ),
     );
   }

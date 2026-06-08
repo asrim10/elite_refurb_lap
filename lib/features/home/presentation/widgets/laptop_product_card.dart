@@ -83,7 +83,7 @@ class LaptopProductCard extends StatelessWidget {
           Container(
             width: double.infinity,
             height: 180,
-            decoration: const BoxDecoration(color: Color(0xFFF5F0EC)),
+            decoration: const BoxDecoration(color: Color(0xFFE8E0D8)),
             child: Stack(
               children: [
                 Positioned.fill(
@@ -94,7 +94,7 @@ class LaptopProductCard extends StatelessWidget {
                     child: _imageUrl.isNotEmpty
                         ? Image.network(
                             _imageUrl,
-                            fit: BoxFit.cover,
+                            fit: BoxFit.contain,
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;
                               return const Center(
