@@ -30,6 +30,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   File? _pickedImage;
   bool _isSaving = false;
   bool _isUploadingPhoto = false;
+  bool _isRemovingPhoto = false;
 
   @override
   void initState() {
@@ -57,7 +58,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     ref.listen(authViewModelProvider, (prev, next) {
       if (prev?.status == AuthStatus.profileUpdating &&
           next.status == AuthStatus.profileUpdated &&
-          !_isUploadingPhoto) {
+          !_isUploadingPhoto &&
+          !_isRemovingPhoto) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -198,7 +200,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 right: 4,
                 bottom: 4,
                 child: GestureDetector(
-                  onTap: _isUploadingPhoto ? null : () => _onChangePhoto(),
+                  onTap: (_isUploadingPhoto || _isRemovingPhoto)
+                      ? null
+                      : () => _onChangePhoto(),
                   child: Container(
                     width: 40,
                     height: 40,
@@ -224,9 +228,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           ),
           const SizedBox(height: 16),
           GestureDetector(
-            onTap: _isUploadingPhoto ? null : () => _onChangePhoto(),
+            onTap: _isUploadingPhoto || _isRemovingPhoto
+                ? null
+                : () => _onChangePhoto(),
             child: Text(
-              _isUploadingPhoto ? 'UPLOADING...' : 'CHANGE PHOTO',
+              _isUploadingPhoto
+                  ? 'UPLOADING...'
+                  : _isRemovingPhoto
+                      ? 'REMOVING...'
+                      : 'CHANGE PHOTO',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Color(0xFF705A4E),
@@ -236,6 +246,28 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
             ),
           ),
+          // Remove Photo option (only when a photo is set)
+          if (_pickedImage != null || user?.imageUrl != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: GestureDetector(
+                onTap: _isUploadingPhoto || _isRemovingPhoto
+                    ? null
+                    : () => _onRemovePhoto(),
+                child: Text(
+                  _isRemovingPhoto ? 'REMOVING...' : 'REMOVE PHOTO',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _isRemovingPhoto
+                        ? const Color(0xFFBA1A1A).withValues(alpha: 0.5)
+                        : const Color(0xFFBA1A1A),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.10,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -723,6 +755,42 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     } finally {
       if (mounted) {
         setState(() => _isUploadingPhoto = false);
+      }
+    }
+  }
+
+  Future<void> _onRemovePhoto() async {
+    if (_pickedImage == null && ref.read(authViewModelProvider).authEntity?.imageUrl == null) return;
+
+    setState(() {
+      _pickedImage = null;
+      _isRemovingPhoto = true;
+    });
+
+    try {
+      await ref
+          .read(authViewModelProvider.notifier)
+          .updateProfile(imageUrl: '');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Profile photo removed'),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('Failed to remove photo: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isRemovingPhoto = false);
       }
     }
   }
