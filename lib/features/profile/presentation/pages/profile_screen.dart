@@ -1,6 +1,8 @@
 import 'package:EliteReurbLap/app/theme/app_color.dart';
 import 'package:EliteReurbLap/core/api/api_endpoints.dart';
 import 'package:EliteReurbLap/features/auth/domain/entities/auth_entity.dart';
+import 'package:EliteReurbLap/features/home/presentation/widgets/home_bottom_nav_bar.dart';
+import 'package:EliteReurbLap/features/laptop/presentation/pages/add_laptop_screen.dart';
 import 'package:EliteReurbLap/features/auth/presentation/state/auth_state.dart';
 import 'package:EliteReurbLap/features/auth/presentation/view_model/auth_viewmodel.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/pages/my_listings_screen.dart';
@@ -60,6 +62,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ],
           ),
         ),
+      ),
+      bottomNavigationBar: HomeBottomNavBar(
+        selectedIndex: 4,
+        onTabChanged: (index) {
+          if (index == 2) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const AddLaptopScreen(),
+              ),
+            );
+          } else if (index != 4) {
+            Navigator.of(context).pop();
+          }
+        },
       ),
     );
   }
