@@ -1,29 +1,57 @@
+import 'package:EliteReurbLap/core/api/api_endpoints.dart';
+import 'package:EliteReurbLap/features/laptop/domain/entities/laptop_entity.dart';
 import 'package:flutter/material.dart';
-
-class LaptopProduct {
-  final String name;
-  final String specs;
-  final String price;
-  final String condition;
-  final Color conditionColor;
-  final Color conditionBgColor;
-  final String imageUrl;
-
-  const LaptopProduct({
-    required this.name,
-    required this.specs,
-    required this.price,
-    required this.condition,
-    required this.conditionColor,
-    required this.conditionBgColor,
-    required this.imageUrl,
-  });
-}
+import 'package:intl/intl.dart';
 
 class LaptopProductCard extends StatelessWidget {
-  final LaptopProduct product;
+  final LaptopEntity product;
 
   const LaptopProductCard({super.key, required this.product});
+
+  String get _formattedSpecs {
+    final storageStr = product.storage >= 1000
+        ? '${(product.storage / 1000).toStringAsFixed(0)}TB'
+        : '${product.storage}GB';
+    return '${product.processor}, ${product.ram}GB RAM, $storageStr ${product.storageType}';
+  }
+
+  String get _formattedPrice {
+    final format = NumberFormat.currency(symbol: 'Rs. ', decimalDigits: 0);
+    return format.format(product.price);
+  }
+
+  String get _conditionLabel {
+    // Capitalize first letter
+    if (product.condition.isEmpty) return 'Good';
+    return product.condition[0].toUpperCase() + product.condition.substring(1);
+  }
+
+  Color get _conditionTextColor {
+    switch (product.condition.toLowerCase()) {
+      case 'excellent':
+        return const Color(0xFF766054);
+      case 'good':
+        return const Color(0xFF4B454A);
+      case 'fair':
+      default:
+        return const Color(0xFF4B454A);
+    }
+  }
+
+  Color get _conditionBgColor {
+    switch (product.condition.toLowerCase()) {
+      case 'excellent':
+        return const Color(0x4CFBDCCD);
+      case 'good':
+        return const Color(0xFFE2E2E2);
+      case 'fair':
+      default:
+        return const Color(0xFFE2E2E2);
+    }
+  }
+
+  String get _imageUrl =>
+      product.images.isNotEmpty ? ApiEndpoints.getImageUrl(product.images.first) : '';
 
   @override
   Widget build(BuildContext context) {
@@ -63,28 +91,36 @@ class LaptopProductCard extends StatelessWidget {
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(16),
                     ),
-                    child: Image.network(
-                      product.imageUrl,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return const Center(
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Color(0xFFC4B0A4),
+                    child: _imageUrl.isNotEmpty
+                        ? Image.network(
+                            _imageUrl,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return const Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Color(0xFFC4B0A4),
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Center(
+                                child: Icon(
+                                  Icons.laptop_mac,
+                                  size: 48,
+                                  color: Color(0xFFC4B0A4),
+                                ),
+                              );
+                            },
+                          )
+                        : const Center(
+                            child: Icon(
+                              Icons.laptop_mac,
+                              size: 48,
+                              color: Color(0xFFC4B0A4),
+                            ),
                           ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Center(
-                          child: Icon(
-                            Icons.laptop_mac,
-                            size: 48,
-                            color: Color(0xFFC4B0A4),
-                          ),
-                        );
-                      },
-                    ),
                   ),
                 ),
                 // Favorite Button
@@ -133,16 +169,16 @@ class LaptopProductCard extends StatelessWidget {
                       textColor: const Color(0xFF6B5A50),
                     ),
                     _buildTag(
-                      label: product.condition,
-                      bgColor: product.conditionBgColor,
-                      textColor: product.conditionColor,
+                      label: _conditionLabel,
+                      bgColor: _conditionBgColor,
+                      textColor: _conditionTextColor,
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 // Product Name
                 Text(
-                  product.name,
+                  product.title,
                   style: const TextStyle(
                     color: Colors.black,
                     fontSize: 15,
@@ -152,7 +188,7 @@ class LaptopProductCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 // Specs
                 Text(
-                  product.specs,
+                  _formattedSpecs,
                   style: const TextStyle(
                     color: Color(0xFF9A8174),
                     fontSize: 12,
@@ -162,7 +198,7 @@ class LaptopProductCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 // Price
                 Text(
-                  product.price,
+                  _formattedPrice,
                   style: const TextStyle(
                     color: Colors.black,
                     fontSize: 18,
