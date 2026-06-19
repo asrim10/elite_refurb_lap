@@ -501,13 +501,14 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
         );
       } else {
         // CREATE MODE: New listing
-        final userId =
-            ref.read(userSessionServiceProvider).getCurrentUserId() ?? '';
+        final sessionService = ref.read(userSessionServiceProvider);
+        final userId = sessionService.getCurrentUserId() ?? '';
         if (userId.isEmpty) {
           _showSnackBar('User session not found. Please login again.');
           setState(() => _isSubmitting = false);
           return;
         }
+        final sellerName = sessionService.getCurrentUserFullName();
 
         // Upload images
         final imageUrls = <String>[];
@@ -575,6 +576,7 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
               ? double.tryParse(_weightController.text)
               : null,
           sellerId: userId,
+          sellerName: sellerName,
           yearOfManufacture: _yearController.text.isNotEmpty
               ? int.tryParse(_yearController.text)
               : null,

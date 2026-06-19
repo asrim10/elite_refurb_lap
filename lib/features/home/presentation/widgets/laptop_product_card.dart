@@ -5,8 +5,9 @@ import 'package:intl/intl.dart';
 
 class LaptopProductCard extends StatelessWidget {
   final LaptopEntity product;
+  final VoidCallback? onTap;
 
-  const LaptopProductCard({super.key, required this.product});
+  const LaptopProductCard({super.key, required this.product, this.onTap});
 
   String get _formattedSpecs {
     final storageStr = product.storage >= 1000
@@ -21,7 +22,6 @@ class LaptopProductCard extends StatelessWidget {
   }
 
   String get _conditionLabel {
-    // Capitalize first letter
     if (product.condition.isEmpty) return 'Good';
     return product.condition[0].toUpperCase() + product.condition.substring(1);
   }
@@ -55,160 +55,163 @@ class LaptopProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      clipBehavior: Clip.antiAlias,
-      decoration: ShapeDecoration(
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(
-            width: 1,
-            color: Color(0x4CE8E0D8),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        clipBehavior: Clip.antiAlias,
+        decoration: ShapeDecoration(
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(
+              width: 1,
+              color: Color(0x4CE8E0D8),
+            ),
+            borderRadius: BorderRadius.circular(16),
           ),
-          borderRadius: BorderRadius.circular(16),
+          shadows: const [
+            BoxShadow(
+              color: Color(0x0C050206),
+              blurRadius: 20,
+              offset: Offset(0, 4),
+              spreadRadius: 0,
+            ),
+          ],
         ),
-        shadows: const [
-          BoxShadow(
-            color: Color(0x0C050206),
-            blurRadius: 20,
-            offset: Offset(0, 4),
-            spreadRadius: 0,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image Section
-          Container(
-            width: double.infinity,
-            height: 180,
-            decoration: const BoxDecoration(color: Color(0xFFE8E0D8)),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(16),
-                    ),
-                    child: _imageUrl.isNotEmpty
-                        ? Image.network(
-                            _imageUrl,
-                            fit: BoxFit.contain,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return const Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Color(0xFFC4B0A4),
-                                ),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Center(
-                                child: Icon(
-                                  Icons.laptop_mac,
-                                  size: 48,
-                                  color: Color(0xFFC4B0A4),
-                                ),
-                              );
-                            },
-                          )
-                        : const Center(
-                            child: Icon(
-                              Icons.laptop_mac,
-                              size: 48,
-                              color: Color(0xFFC4B0A4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image Section
+            Container(
+              width: double.infinity,
+              height: 180,
+              decoration: const BoxDecoration(color: Color(0xFFE8E0D8)),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
+                      child: _imageUrl.isNotEmpty
+                          ? Image.network(
+                              _imageUrl,
+                              fit: BoxFit.contain,
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return const Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Color(0xFFC4B0A4),
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Center(
+                                  child: Icon(
+                                    Icons.laptop_mac,
+                                    size: 48,
+                                    color: Color(0xFFC4B0A4),
+                                  ),
+                                );
+                              },
+                            )
+                          : const Center(
+                              child: Icon(
+                                Icons.laptop_mac,
+                                size: 48,
+                                color: Color(0xFFC4B0A4),
+                              ),
                             ),
+                    ),
+                  ),
+                  // Favorite Button
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: ShapeDecoration(
+                        color: Colors.white.withValues(alpha: 0.80),
+                        shape: const CircleBorder(),
+                        shadows: const [
+                          BoxShadow(
+                            color: Color(0x0C000000),
+                            blurRadius: 2,
+                            offset: Offset(0, 1),
+                            spreadRadius: 0,
                           ),
-                  ),
-                ),
-                // Favorite Button
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: ShapeDecoration(
-                      color: Colors.white.withValues(alpha: 0.80),
-                      shape: const CircleBorder(),
-                      shadows: const [
-                        BoxShadow(
-                          color: Color(0x0C000000),
-                          blurRadius: 2,
-                          offset: Offset(0, 1),
-                          spreadRadius: 0,
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.favorite_border,
-                      size: 18,
-                      color: Color(0xFF6B5A50),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.favorite_border,
+                        size: 18,
+                        color: Color(0xFF6B5A50),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          // Details Section
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Tags
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 0,
-                  children: [
-                    _buildTag(
-                      label: 'Verified',
-                      bgColor: const Color(0xFFF5F0EC),
-                      textColor: const Color(0xFF6B5A50),
+            // Details Section
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Tags
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 0,
+                    children: [
+                      _buildTag(
+                        label: 'Verified',
+                        bgColor: const Color(0xFFF5F0EC),
+                        textColor: const Color(0xFF6B5A50),
+                      ),
+                      _buildTag(
+                        label: _conditionLabel,
+                        bgColor: _conditionBgColor,
+                        textColor: _conditionTextColor,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Product Name
+                  Text(
+                    product.title,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
                     ),
-                    _buildTag(
-                      label: _conditionLabel,
-                      bgColor: _conditionBgColor,
-                      textColor: _conditionTextColor,
+                  ),
+                  const SizedBox(height: 2),
+                  // Specs
+                  Text(
+                    _formattedSpecs,
+                    style: const TextStyle(
+                      color: Color(0xFF9A8174),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                // Product Name
-                Text(
-                  product.title,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
                   ),
-                ),
-                const SizedBox(height: 2),
-                // Specs
-                Text(
-                  _formattedSpecs,
-                  style: const TextStyle(
-                    color: Color(0xFF9A8174),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
+                  const SizedBox(height: 8),
+                  // Price
+                  Text(
+                    _formattedPrice,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                // Price
-                Text(
-                  _formattedPrice,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

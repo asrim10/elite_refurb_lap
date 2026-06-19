@@ -4,6 +4,7 @@ import 'package:EliteReurbLap/features/home/presentation/widgets/home_header.dar
 import 'package:EliteReurbLap/features/home/presentation/widgets/home_search_bar.dart';
 import 'package:EliteReurbLap/features/home/presentation/widgets/laptop_product_card.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/pages/add_laptop_screen.dart';
+import 'package:EliteReurbLap/features/laptop/presentation/pages/laptop_details_screen.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/state/laptop_state.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/view_model/laptop_viewmodel.dart';
 import 'package:EliteReurbLap/features/profile/presentation/pages/profile_screen.dart';
@@ -162,7 +163,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           itemCount: laptops.length,
           separatorBuilder: (_, __) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
-            return LaptopProductCard(product: laptops[index]);
+            final laptop = laptops[index];
+            return LaptopProductCard(
+              product: laptop,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => LaptopDetailsScreen(laptop: laptop),
+                  ),
+                );
+              },
+            );
           },
         );
     }

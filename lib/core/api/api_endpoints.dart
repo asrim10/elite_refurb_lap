@@ -26,7 +26,8 @@ class ApiEndpoints {
   }
 
   /// The server host used to serve static files (images, uploads).
-  /// Strips the API path suffix ("/api" or "/api/v1") from [baseUrl].
+  /// Strips the API path suffix ("/api" or "/api/v1") from [baseUrl]
+  /// so images are looked up at the server root (e.g. http://host/uploads/...).
   static String get imageBaseUrl {
     final url = baseUrl;
     if (url.endsWith('/api/v1')) {
@@ -45,7 +46,9 @@ class ApiEndpoints {
     }
     final base = imageBaseUrl;
     final cleanPath = path.startsWith('/') ? path : '/$path';
-    return '$base$cleanPath';
+    final url = '$base$cleanPath';
+    debugPrint('🌐 getImageUrl: $url');
+    return url;
   }
 
   static const Duration connectionTimeout = Duration(seconds: 30);
