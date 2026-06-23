@@ -23,6 +23,7 @@ class LaptopEntity extends Equatable {
   final double? weight;
   final String? sellerId;
   final String? sellerName;
+  final String? sellerImage;
   final int? yearOfManufacture;
   final int? warrantyMonths;
   final LaptopLocationEntity? location;
@@ -53,6 +54,7 @@ class LaptopEntity extends Equatable {
     this.weight,
     this.sellerId,
     this.sellerName,
+    this.sellerImage,
     this.yearOfManufacture,
     this.warrantyMonths,
     this.location,
@@ -85,6 +87,7 @@ class LaptopEntity extends Equatable {
         weight,
         sellerId,
         sellerName,
+        sellerImage,
         yearOfManufacture,
         warrantyMonths,
         location,

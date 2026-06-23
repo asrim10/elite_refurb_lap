@@ -179,6 +179,28 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
     return null;
   }
 
+  /// Resolves the seller profile image for the seller card.
+  /// Priority:
+  /// 1. Session profile picture (if seller is the current user)
+  /// 2. [laptop.sellerImage] from the backend (if the API provides it)
+  String? _resolveSellerImage(LaptopEntity laptop) {
+    // Check session first (for the current user's own listings)
+    if (laptop.sellerId != null) {
+      final sessionService = ref.read(userSessionServiceProvider);
+      final currentUserId = sessionService.getCurrentUserId();
+      if (laptop.sellerId == currentUserId) {
+        final profilePic = sessionService.getCurrentUserProfilePicture();
+        if (profilePic != null && profilePic.isNotEmpty) {
+          return profilePic;
+        }
+      }
+    }
+    // Fall back to sellerImage from the backend (for other sellers' listings)
+    if (laptop.sellerImage != null && laptop.sellerImage!.isNotEmpty) {
+      return laptop.sellerImage;
+    }
+    return null;
+  }
 
   Widget _buildImageSection(LaptopEntity laptop) {
     return LaptopImageGallery(images: laptop.images);
@@ -202,6 +224,7 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
             LaptopSellerCard(
               laptop: laptop,
               sellerNameOverride: _resolveSellerName(laptop),
+              sellerImageUrl: _resolveSellerImage(laptop),
             ),
           if (laptop.sellerName != null || laptop.sellerId != null)
             const SizedBox(height: 16),

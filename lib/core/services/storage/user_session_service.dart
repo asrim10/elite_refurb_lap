@@ -21,6 +21,7 @@ class UserSessionService {
   static const String _keyUserEmail = 'user_email';
   static const String _keyUserFullName = 'user_full_name';
   static const String _keyUserUsername = 'user_username';
+  static const String _keyUserProfilePicture = 'user_profile_picture';
 
   UserSessionService({required SharedPreferences prefs}) : _prefs = prefs;
 
@@ -39,6 +40,9 @@ class UserSessionService {
     await _prefs.setString(_keyUserEmail, email);
     await _prefs.setString(_keyUserFullName, fullName);
     await _prefs.setString(_keyUserUsername, username);
+    if (profilePicture != null) {
+      await _prefs.setString(_keyUserProfilePicture, profilePicture);
+    }
   }
 
   // Check if user is logged in
@@ -66,6 +70,11 @@ class UserSessionService {
     return _prefs.getString(_keyUserUsername);
   }
 
+  // Get current user profile picture URL
+  String? getCurrentUserProfilePicture() {
+    return _prefs.getString(_keyUserProfilePicture);
+  }
+
   // Clear user session (logout)
   Future<void> clearSession() async {
     await _prefs.remove(_keyIsLoggedIn);
@@ -73,5 +82,6 @@ class UserSessionService {
     await _prefs.remove(_keyUserEmail);
     await _prefs.remove(_keyUserFullName);
     await _prefs.remove(_keyUserUsername);
+    await _prefs.remove(_keyUserProfilePicture);
   }
 }

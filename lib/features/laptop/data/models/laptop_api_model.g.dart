@@ -49,6 +49,7 @@ LaptopApiModel _$LaptopApiModelFromJson(Map<String, dynamic> json) =>
       weight: (json['weight'] as num?)?.toDouble(),
       sellerId: json['sellerId'] as String?,
       sellerName: json['sellerName'] as String?,
+      sellerImage: json['sellerImage'] as String?,
       yearOfManufacture: (json['yearOfManufacture'] as num?)?.toInt(),
       warrantyMonths: (json['warrantyMonths'] as num?)?.toInt(),
       location: json['location'] == null
@@ -90,6 +91,7 @@ Map<String, dynamic> _$LaptopApiModelToJson(LaptopApiModel instance) =>
       'weight': instance.weight,
       'sellerId': instance.sellerId,
       'sellerName': instance.sellerName,
+      'sellerImage': instance.sellerImage,
       'yearOfManufacture': instance.yearOfManufacture,
       'warrantyMonths': instance.warrantyMonths,
       'location': instance.location,

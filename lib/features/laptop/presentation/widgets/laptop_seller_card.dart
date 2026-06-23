@@ -1,16 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:EliteReurbLap/core/api/api_endpoints.dart';
 import 'package:EliteReurbLap/features/laptop/domain/entities/laptop_entity.dart';
 
 class LaptopSellerCard extends StatelessWidget {
   final LaptopEntity laptop;
   final String? sellerNameOverride;
+  final String? sellerImageUrl;
 
-  const LaptopSellerCard({super.key, required this.laptop, this.sellerNameOverride});
+  const LaptopSellerCard({
+    super.key,
+    required this.laptop,
+    this.sellerNameOverride,
+    this.sellerImageUrl,
+  });
 
   @override
   Widget build(BuildContext context) {
     final displayName = sellerNameOverride ?? laptop.sellerName;
     final initial = (displayName?.isNotEmpty == true ? displayName! : 'S')[0].toUpperCase();
+    final imageUrl = sellerImageUrl ?? laptop.sellerImage;
+    final hasImage = imageUrl != null && imageUrl.isNotEmpty;
 
     return Container(
       width: double.infinity,
@@ -31,25 +40,36 @@ class LaptopSellerCard extends StatelessWidget {
         children: [
           const SizedBox(width: 16),
           // Avatar
-          Container(
-            width: 48,
-            height: 48,
-            decoration: const ShapeDecoration(
-              color: Colors.black,
-              shape: CircleBorder(),
-            ),
-            child: Center(
-              child: Text(
-                initial,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w700,
-                  height: 1.40,
-                ),
+          ClipOval(
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: hasImage ? null : Colors.black,
+                image: hasImage
+                    ? DecorationImage(
+                        image: NetworkImage(
+                          ApiEndpoints.getImageUrl(imageUrl),
+                        ),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
+              child: hasImage
+                  ? null
+                  : Center(
+                      child: Text(
+                        initial,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                          height: 1.40,
+                        ),
+                      ),
+                    ),
             ),
           ),
           const SizedBox(width: 21),

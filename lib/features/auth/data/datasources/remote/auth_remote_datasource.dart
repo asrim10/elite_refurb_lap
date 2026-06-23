@@ -47,6 +47,7 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
         email: user.email,
         fullName: user.fullName,
         username: user.username,
+        profilePicture: user.imageUrl,
       );
 
       final token = response.data['token'];
@@ -84,6 +85,7 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
       email: user.email,
       fullName: user.fullName,
       username: user.username,
+      profilePicture: user.imageUrl,
     );
 
     return user;
@@ -126,6 +128,7 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
       email: user.email,
       fullName: user.fullName,
       username: user.username,
+      profilePicture: user.imageUrl,
     );
 
     return user;
