@@ -8,6 +8,7 @@ import 'package:EliteReurbLap/features/laptop/presentation/pages/laptop_details_
 import 'package:EliteReurbLap/features/laptop/presentation/state/laptop_state.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/view_model/laptop_viewmodel.dart';
 import 'package:EliteReurbLap/features/profile/presentation/pages/profile_screen.dart';
+import 'package:EliteReurbLap/features/search/presentation/pages/search_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -41,7 +42,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: Column(
           children: [
             const HomeHeader(),
-            const HomeSearchBar(),
+            HomeSearchBar(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const SearchScreen(),
+                  ),
+                );
+              },
+            ),
             const SizedBox(height: 8),
             CategoryChips(
               selectedIndex: _selectedCategory,
@@ -56,7 +65,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       bottomNavigationBar: HomeBottomNavBar(
         selectedIndex: _selectedBottomNav,
         onTabChanged: (index) {
-          if (index == 2) {
+          if (index == 1) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const SearchScreen(),
+              ),
+            );
+          } else if (index == 2) {
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => const AddLaptopScreen(),

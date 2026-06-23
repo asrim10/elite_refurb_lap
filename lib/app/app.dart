@@ -4,6 +4,7 @@ import 'package:EliteReurbLap/features/auth/presentation/pages/signup_screen.dar
 import 'package:EliteReurbLap/features/home/presentation/pages/home_screen.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/pages/my_listings_screen.dart';
 import 'package:EliteReurbLap/features/profile/presentation/pages/profile_screen.dart';
+import 'package:EliteReurbLap/features/search/presentation/pages/search_screen.dart';
 import 'package:EliteReurbLap/features/splash/presentation/pages/splash_screen.dart';
 import 'package:EliteReurbLap/features/splash/presentation/pages/splash_screen2.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +27,7 @@ class Myapp extends ConsumerWidget {
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignupScreen(),
         '/home': (context) => const HomeScreen(),
+        '/search': (context) => const SearchScreen(),
         '/my-listings': (context) => const MyListingsScreen(),
         '/profile': (context) => const ProfileScreen(),
       },
