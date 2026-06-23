@@ -2,9 +2,11 @@ import 'package:EliteReurbLap/app/theme/app_color.dart';
 import 'package:EliteReurbLap/features/home/presentation/widgets/home_bottom_nav_bar.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/pages/add_laptop_screen.dart';
 import 'package:EliteReurbLap/features/profile/presentation/pages/profile_screen.dart';
+import 'package:EliteReurbLap/features/search/domain/search_filter.dart';
 import 'package:EliteReurbLap/features/search/presentation/widgets/search_bar_widget.dart';
 import 'package:EliteReurbLap/features/search/presentation/widgets/search_category_chips.dart';
 import 'package:EliteReurbLap/features/search/presentation/widgets/search_featured_product_card.dart';
+import 'package:EliteReurbLap/features/search/presentation/widgets/search_filter_sheet.dart';
 import 'package:EliteReurbLap/features/search/presentation/widgets/search_header.dart';
 import 'package:EliteReurbLap/features/search/presentation/widgets/search_small_product_card.dart';
 import 'package:flutter/material.dart';
@@ -19,12 +21,32 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   int _selectedCategory = 0;
   int _selectedBottomNav = 1;
+  SearchFilter _currentFilter = const SearchFilter();
   final TextEditingController _searchController = TextEditingController();
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _showFilterSheet() {
+    showModalBottomSheet<SearchFilter>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: const Color(0x4C050206),
+      builder: (_) => SearchFilterSheet(
+        currentFilter: _currentFilter,
+      ),
+    ).then((result) {
+      if (result != null) {
+        setState(() {
+          _currentFilter = result;
+        });
+        // TODO: apply filter to search results
+      }
+    });
   }
 
   @override
@@ -61,6 +83,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       selectedIndex: _selectedCategory,
                       onCategoryChanged: (index) =>
                           setState(() => _selectedCategory = index),
+                      onFilterTap: _showFilterSheet,
                     ),
                   ],
                 ),

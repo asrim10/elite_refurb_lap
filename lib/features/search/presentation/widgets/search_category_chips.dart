@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class SearchCategoryChips extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onCategoryChanged;
+  final VoidCallback? onFilterTap;
 
   static const List<String> categories = [
     'ALL LAPTOPS',
@@ -14,6 +15,7 @@ class SearchCategoryChips extends StatelessWidget {
     super.key,
     required this.selectedIndex,
     required this.onCategoryChanged,
+    this.onFilterTap,
   });
 
   @override
@@ -78,20 +80,23 @@ class SearchCategoryChips extends StatelessWidget {
   }
 
   Widget _buildFilterButton() {
-    return Container(
-      width: 40,
-      height: 36,
-      decoration: ShapeDecoration(
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(width: 1, color: Color(0xFFD1D5DB)),
-          borderRadius: BorderRadius.circular(9999),
+    return GestureDetector(
+      onTap: onFilterTap,
+      child: Container(
+        width: 40,
+        height: 36,
+        decoration: ShapeDecoration(
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(width: 1, color: Color(0xFFD1D5DB)),
+            borderRadius: BorderRadius.circular(9999),
+          ),
         ),
-      ),
-      child: const Icon(
-        Icons.tune,
-        size: 18,
-        color: Color(0xFF374151),
+        child: const Icon(
+          Icons.tune,
+          size: 18,
+          color: Color(0xFF374151),
+        ),
       ),
     );
   }
