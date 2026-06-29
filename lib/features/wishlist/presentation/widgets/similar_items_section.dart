@@ -61,7 +61,7 @@ class SimilarItemsSection extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           SizedBox(
-            height: 235,
+            height: 270,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20),

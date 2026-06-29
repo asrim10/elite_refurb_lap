@@ -11,6 +11,8 @@ import 'package:EliteReurbLap/features/laptop/presentation/widgets/laptop_seller
 import 'package:EliteReurbLap/features/laptop/presentation/widgets/laptop_tags_section.dart';
 import 'package:EliteReurbLap/core/services/storage/user_session_service.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/widgets/laptop_details_bottom_bar.dart';
+import 'package:EliteReurbLap/features/wishlist/presentation/state/wishlist_state.dart';
+import 'package:EliteReurbLap/features/wishlist/presentation/view_model/wishlist_viewmodel.dart';
 
 class LaptopDetailsScreen extends ConsumerStatefulWidget {
   final String? laptopId;
@@ -32,19 +34,33 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.laptopId != null && widget.laptop == null) {
-      Future.microtask(() {
+    Future.microtask(() {
+      if (widget.laptopId != null && widget.laptop == null) {
         ref
             .read(laptopViewModelProvider.notifier)
             .getLaptopById(widget.laptopId!);
-      });
-    }
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final laptopState = ref.watch(laptopViewModelProvider);
+    final wishlistState = ref.watch(wishlistViewModelProvider);
     final laptop = widget.laptop ?? laptopState.selectedLaptop;
+    final isInWishlist =
+        laptop?.id != null && wishlistState.laptopIds.contains(laptop!.id);
+
+    ref.listen<WishlistState>(wishlistViewModelProvider, (prev, next) {
+      if (prev?.status == next.status) return;
+      if (next.status == WishlistStatus.laptopAdded) {
+        _showSnackBar('Added to wishlist');
+      } else if (next.status == WishlistStatus.laptopRemoved) {
+        _showSnackBar('Removed from wishlist');
+      } else if (next.status == WishlistStatus.error && next.errorMessage != null) {
+        _showSnackBar(next.errorMessage!);
+      }
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F0EC),
@@ -53,7 +69,7 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
           : SafeArea(
               child: Column(
                 children: [
-                  _buildAppBar(laptop),
+                  _buildAppBar(laptop, isInWishlist),
                   _buildImageSection(laptop),
                   Expanded(child: _buildScrollContent(laptop)),
                   LaptopDetailsBottomBar(
@@ -79,6 +95,18 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
                 ],
               ),
             ),
+    );
+  }
+
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
     );
   }
 
@@ -116,7 +144,7 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
     );
   }
 
-  Widget _buildAppBar(LaptopEntity laptop) {
+  Widget _buildAppBar(LaptopEntity laptop, bool isInWishlist) {
     return Container(
       width: double.infinity,
       height: 52,
@@ -150,7 +178,22 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
             spacing: 16,
             children: [
               const Icon(Icons.share_outlined, size: 24, color: Colors.black),
-              const Icon(Icons.favorite_outline, size: 24, color: Colors.black),
+              GestureDetector(
+                onTap: () {
+                  if (laptop.id != null) {
+                    ref
+                        .read(wishlistViewModelProvider.notifier)
+                        .toggleLaptopInWishlist(laptop.id!);
+                  }
+                },
+                child: Icon(
+                  isInWishlist ? Icons.favorite : Icons.favorite_outline,
+                  size: 24,
+                  color: isInWishlist
+                      ? const Color(0xFFD32F2F)
+                      : Colors.black,
+                ),
+              ),
             ],
           ),
         ],

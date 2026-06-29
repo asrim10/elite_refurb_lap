@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'package:EliteReurbLap/features/laptop/domain/entities/laptop_entity.dart';
+
 /// Simple data class for a wishlist item.
 class WishlistItem {
   final String imageUrl;
@@ -18,6 +20,21 @@ class WishlistItem {
     this.originalPrice,
     this.hasPriceDrop = false,
   });
+
+  factory WishlistItem.fromLaptop(LaptopEntity laptop) {
+    final hasPriceDrop = laptop.originalPrice != null && laptop.originalPrice! > laptop.price;
+    final storageStr = laptop.storage >= 1000
+        ? '${(laptop.storage / 1000).toStringAsFixed(0)}TB'
+        : '${laptop.storage}GB';
+    return WishlistItem(
+      imageUrl: laptop.images.isNotEmpty ? laptop.images.first : '',
+      title: laptop.title,
+      specs: '${laptop.processor}, ${laptop.ram}GB RAM, $storageStr ${laptop.storageType}',
+      price: laptop.price,
+      originalPrice: laptop.originalPrice,
+      hasPriceDrop: hasPriceDrop,
+    );
+  }
 }
 
 class WishlistItemCard extends StatelessWidget {

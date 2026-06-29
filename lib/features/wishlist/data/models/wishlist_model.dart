@@ -3,9 +3,17 @@ import 'package:EliteReurbLap/features/wishlist/domain/entities/wishlist_entity.
 
 part 'wishlist_model.g.dart';
 
+/// Converts a dynamic value (String or Map with _id) to a String ID.
+String _laptopIdFromJson(dynamic e) {
+  if (e is String) return e;
+  if (e is Map) return e['_id'] as String;
+  return '';
+}
+
 @JsonSerializable()
 class WishlistModel {
   final String userId;
+  @JsonKey(fromJson: _laptopIdsFromJson, toJson: _laptopIdsToJson)
   final List<String> laptopIds;
   final String? name;
   final String? description;
@@ -16,6 +24,12 @@ class WishlistModel {
     this.name,
     this.description,
   });
+
+  static List<String> _laptopIdsFromJson(List<dynamic> json) {
+    return json.map((e) => _laptopIdFromJson(e)).toList();
+  }
+
+  static List<String> _laptopIdsToJson(List<String> ids) => ids;
 
   factory WishlistModel.fromJson(Map<String, dynamic> json) =>
       _$WishlistModelFromJson(json);

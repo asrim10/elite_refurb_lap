@@ -245,11 +245,11 @@ class WishlistViewModel extends Notifier<WishlistState> {
     );
   }
 
-  void toggleLaptopInWishlist(String laptopId) {
-    if (state.isInWishlist) {
-      removeLaptop(laptopId);
+  Future<void> toggleLaptopInWishlist(String laptopId) async {
+    if (state.laptopIds.contains(laptopId)) {
+      await removeLaptop(laptopId);
     } else {
-      addLaptop(laptopId);
+      await addLaptop(laptopId);
     }
   }
 }

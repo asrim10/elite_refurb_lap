@@ -21,6 +21,25 @@ class WishlistRepository implements IWishlistRepository {
     required IWishlistRemoteDataSource wishlistRemoteDatasource,
   }) : _wishlistRemoteDataSource = wishlistRemoteDatasource;
 
+  /// Safely extract an error message from a [DioException] response.
+  /// The response body may be a Map (JSON) or a plain String (HTML error page).
+  String _extractErrorMessage(DioException e, String fallback) {
+    try {
+      final data = e.response?.data;
+      if (data is Map) {
+        return (data['message'] as String?) ?? fallback;
+      }
+      if (data is String && data.isNotEmpty) {
+        // Truncate HTML to avoid massive error messages
+        final cleaned = data.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+        return cleaned.isNotEmpty ? cleaned : fallback;
+      }
+    } catch (_) {
+      // Ignore extraction errors
+    }
+    return fallback;
+  }
+
   @override
   Future<Either<Failure, List<WishlistEntity>>> getAllPublicWishlists() async {
     try {
@@ -29,7 +48,7 @@ class WishlistRepository implements IWishlistRepository {
     } on DioException catch (e) {
       return Left(
         ApiFailure(
-          message: e.response?.data['message'] ?? 'Failed to fetch public wishlists',
+          message: _extractErrorMessage(e, 'Failed to fetch public wishlists'),
           statusCode: e.response?.statusCode,
         ),
       );
@@ -46,7 +65,7 @@ class WishlistRepository implements IWishlistRepository {
     } on DioException catch (e) {
       return Left(
         ApiFailure(
-          message: e.response?.data['message'] ?? 'Failed to fetch public wishlist',
+          message: _extractErrorMessage(e, 'Failed to fetch public wishlist'),
           statusCode: e.response?.statusCode,
         ),
       );
@@ -69,7 +88,7 @@ class WishlistRepository implements IWishlistRepository {
     } on DioException catch (e) {
       return Left(
         ApiFailure(
-          message: e.response?.data['message'] ?? 'Failed to create wishlist',
+          message: _extractErrorMessage(e, 'Failed to create wishlist'),
           statusCode: e.response?.statusCode,
         ),
       );
@@ -86,7 +105,7 @@ class WishlistRepository implements IWishlistRepository {
     } on DioException catch (e) {
       return Left(
         ApiFailure(
-          message: e.response?.data['message'] ?? 'Failed to fetch your wishlist',
+          message: _extractErrorMessage(e, 'Failed to fetch your wishlist'),
           statusCode: e.response?.statusCode,
         ),
       );
@@ -103,7 +122,7 @@ class WishlistRepository implements IWishlistRepository {
     } on DioException catch (e) {
       return Left(
         ApiFailure(
-          message: e.response?.data['message'] ?? 'Failed to add laptop to wishlist',
+          message: _extractErrorMessage(e, 'Failed to add laptop to wishlist'),
           statusCode: e.response?.statusCode,
         ),
       );
@@ -120,7 +139,7 @@ class WishlistRepository implements IWishlistRepository {
     } on DioException catch (e) {
       return Left(
         ApiFailure(
-          message: e.response?.data['message'] ?? 'Failed to remove laptop from wishlist',
+          message: _extractErrorMessage(e, 'Failed to remove laptop from wishlist'),
           statusCode: e.response?.statusCode,
         ),
       );
@@ -137,7 +156,7 @@ class WishlistRepository implements IWishlistRepository {
     } on DioException catch (e) {
       return Left(
         ApiFailure(
-          message: e.response?.data['message'] ?? 'Failed to clear wishlist',
+          message: _extractErrorMessage(e, 'Failed to clear wishlist'),
           statusCode: e.response?.statusCode,
         ),
       );
@@ -160,7 +179,7 @@ class WishlistRepository implements IWishlistRepository {
     } on DioException catch (e) {
       return Left(
         ApiFailure(
-          message: e.response?.data['message'] ?? 'Failed to update wishlist',
+          message: _extractErrorMessage(e, 'Failed to update wishlist'),
           statusCode: e.response?.statusCode,
         ),
       );
@@ -177,7 +196,7 @@ class WishlistRepository implements IWishlistRepository {
     } on DioException catch (e) {
       return Left(
         ApiFailure(
-          message: e.response?.data['message'] ?? 'Failed to delete wishlist',
+          message: _extractErrorMessage(e, 'Failed to delete wishlist'),
           statusCode: e.response?.statusCode,
         ),
       );
@@ -194,7 +213,7 @@ class WishlistRepository implements IWishlistRepository {
     } on DioException catch (e) {
       return Left(
         ApiFailure(
-          message: e.response?.data['message'] ?? 'Failed to check laptop in wishlist',
+          message: _extractErrorMessage(e, 'Failed to check laptop in wishlist'),
           statusCode: e.response?.statusCode,
         ),
       );
