@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'package:EliteReurbLap/core/api/api_endpoints.dart';
 import 'package:EliteReurbLap/features/laptop/domain/entities/laptop_entity.dart';
 
 /// Simple data class for a wishlist item.
@@ -115,7 +116,7 @@ class WishlistItemCard extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Image placeholder
+                    // Image
                     Container(
                       width: 96,
                       height: 96,
@@ -126,13 +127,36 @@ class WishlistItemCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.laptop_mac_outlined,
-                          size: 40,
-                          color: Color(0xFFC4B0A4),
-                        ),
-                      ),
+                      child: item.imageUrl.isNotEmpty
+                          ? Image.network(
+                              ApiEndpoints.getImageUrl(item.imageUrl),
+                              fit: BoxFit.contain,
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return const Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Color(0xFFC4B0A4),
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Center(
+                                  child: Icon(
+                                    Icons.laptop_mac_outlined,
+                                    size: 40,
+                                    color: Color(0xFFC4B0A4),
+                                  ),
+                                );
+                              },
+                            )
+                          : const Center(
+                              child: Icon(
+                                Icons.laptop_mac_outlined,
+                                size: 40,
+                                color: Color(0xFFC4B0A4),
+                              ),
+                            ),
                     ),
                     const SizedBox(width: 16),
                     // Title, specs, price
