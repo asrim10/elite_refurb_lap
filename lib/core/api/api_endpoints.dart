@@ -69,4 +69,16 @@ class ApiEndpoints {
   static const String laptopMyListings = '/laptops/seller/my-listings';
   static const String laptopById = '/laptops/'; // append /:id
   static const String laptopBySeller = '/laptops/seller/'; // append /:sellerId
+
+  // Wishlist Endpoints
+  static const String wishlist = '/wishlist';
+  static const String wishlistPublic = '/wishlist/public';
+  static const String wishlistPublicByUser =
+      '/wishlist/public/'; // append /:userId
+  static const String wishlistMy = '/wishlist/my-wishlist';
+  static const String wishlistAddLaptop = '/wishlist/add-laptop';
+  static const String wishlistRemoveLaptop = '/wishlist/remove-laptop';
+  static const String wishlistClear = '/wishlist/clear';
+  static const String wishlistCheckLaptop =
+      '/wishlist/check/'; // append /:laptopId
 }
