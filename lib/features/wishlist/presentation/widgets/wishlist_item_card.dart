@@ -10,20 +10,15 @@ class WishlistItem {
   final String title;
   final String specs;
   final double price;
-  final double? originalPrice;
-  final bool hasPriceDrop;
 
   const WishlistItem({
     required this.imageUrl,
     required this.title,
     required this.specs,
     required this.price,
-    this.originalPrice,
-    this.hasPriceDrop = false,
   });
 
   factory WishlistItem.fromLaptop(LaptopEntity laptop) {
-    final hasPriceDrop = laptop.originalPrice != null && laptop.originalPrice! > laptop.price;
     final storageStr = laptop.storage >= 1000
         ? '${(laptop.storage / 1000).toStringAsFixed(0)}TB'
         : '${laptop.storage}GB';
@@ -32,8 +27,6 @@ class WishlistItem {
       title: laptop.title,
       specs: '${laptop.processor}, ${laptop.ram}GB RAM, $storageStr ${laptop.storageType}',
       price: laptop.price,
-      originalPrice: laptop.originalPrice,
-      hasPriceDrop: hasPriceDrop,
     );
   }
 }
@@ -52,19 +45,15 @@ class WishlistItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasPriceDrop = item.hasPriceDrop;
-
     return Container(
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
       decoration: ShapeDecoration(
         color: Colors.white,
         shape: RoundedRectangleBorder(
-          side: BorderSide(
+          side: const BorderSide(
             width: 1,
-            color: hasPriceDrop
-                ? const Color(0xFF9A8174)
-                : const Color(0x4CC4B0A4),
+            color: Color(0x4CC4B0A4),
           ),
           borderRadius: BorderRadius.circular(16),
         ),
@@ -86,32 +75,6 @@ class WishlistItemCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Price Drop Badge
-                if (hasPriceDrop) ...[
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.arrow_downward_rounded,
-                        size: 14,
-                        color: Color(0xFF9A8174),
-                      ),
-                      const SizedBox(width: 4),
-                      const Text(
-                        'PRICE DROP!',
-                        style: TextStyle(
-                          color: Color(0xFF9A8174),
-                          fontSize: 11,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w700,
-                          height: 1.50,
-                          letterSpacing: 0.55,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                ],
                 // Image + Info row
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,30 +163,14 @@ class WishlistItemCard extends StatelessWidget {
                             children: [
                               Text(
                                 _formatPrice(item.price),
-                                style: TextStyle(
-                                  color: hasPriceDrop
-                                      ? const Color(0xFF9A8174)
-                                      : Colors.black,
+                                style: const TextStyle(
+                                  color: Colors.black,
                                   fontSize: 18,
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w700,
                                   height: 1.22,
                                 ),
                               ),
-                              if (item.originalPrice != null) ...[
-                                const SizedBox(width: 8),
-                                Text(
-                                  _formatPrice(item.originalPrice!),
-                                  style: const TextStyle(
-                                    color: Color(0xFF4B454A),
-                                    fontSize: 13,
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w400,
-                                    decoration: TextDecoration.lineThrough,
-                                    height: 1.50,
-                                  ),
-                                ),
-                              ],
                             ],
                           ),
                         ],
@@ -233,10 +180,7 @@ class WishlistItemCard extends StatelessWidget {
                 ),
                 // Buttons
                 const SizedBox(height: 8),
-                if (hasPriceDrop)
-                  _PriceDropButtons(onChat: onChat, onRemove: onRemove)
-                else
-                  _NormalButtons(onChat: onChat, onRemove: onRemove),
+                _ActionButtons(onChat: onChat, onRemove: onRemove),
               ],
             ),
           ),
@@ -251,33 +195,12 @@ String _formatPrice(double price) {
   return format.format(price);
 }
 
-class _PriceDropButtons extends StatelessWidget {
+/// Action buttons for the wishlist item card.
+class _ActionButtons extends StatelessWidget {
   final VoidCallback? onChat;
   final VoidCallback? onRemove;
 
-  const _PriceDropButtons({this.onChat, this.onRemove});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 44,
-      child: Row(
-        children: [
-          Expanded(child: _ChatButton(onPressed: onChat)),
-          const SizedBox(width: 8),
-          Expanded(child: _RemoveButton(onPressed: onRemove)),
-        ],
-      ),
-    );
-  }
-}
-
-/// Full-width stacked CHAT + REMOVE buttons for normal item.
-class _NormalButtons extends StatelessWidget {
-  final VoidCallback? onChat;
-  final VoidCallback? onRemove;
-
-  const _NormalButtons({this.onChat, this.onRemove});
+  const _ActionButtons({this.onChat, this.onRemove});
 
   @override
   Widget build(BuildContext context) {
