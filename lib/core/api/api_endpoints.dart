@@ -69,4 +69,9 @@ class ApiEndpoints {
   static const String laptopMyListings = '/laptops/seller/my-listings';
   static const String laptopById = '/laptops/'; // append /:id
   static const String laptopBySeller = '/laptops/seller/'; // append /:sellerId
+
+  // Chat Endpoints
+  static const String chats = '/chats';
+  static const String chatById = '/chats/'; // append /:id
+  static const String chatByLaptop = '/chats/laptop/'; // append /:laptopId
 }
