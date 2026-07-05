@@ -19,6 +19,10 @@ class ChatState extends Equatable {
   final List<MessageEntity> messages;
   final String? errorMessage;
   final String currentUserId;
+  final bool socketConnected;
+
+  /// Maps conversationId -> list of userIds currently typing in that conversation.
+  final Map<String, List<String>> typingUsers;
 
   const ChatState({
     this.status = ChatStatus.initial,
@@ -27,6 +31,8 @@ class ChatState extends Equatable {
     this.messages = const [],
     this.errorMessage,
     this.currentUserId = '',
+    this.socketConnected = false,
+    this.typingUsers = const {},
   });
 
   ChatState copyWith({
@@ -36,6 +42,8 @@ class ChatState extends Equatable {
     List<MessageEntity>? messages,
     String? errorMessage,
     String? currentUserId,
+    bool? socketConnected,
+    Map<String, List<String>>? typingUsers,
     bool clearMessages = false,
   }) {
     return ChatState(
@@ -45,6 +53,8 @@ class ChatState extends Equatable {
       messages: clearMessages ? [] : (messages ?? this.messages),
       errorMessage: errorMessage,
       currentUserId: currentUserId ?? this.currentUserId,
+      socketConnected: socketConnected ?? this.socketConnected,
+      typingUsers: typingUsers ?? this.typingUsers,
     );
   }
 
@@ -56,5 +66,7 @@ class ChatState extends Equatable {
         messages,
         errorMessage,
         currentUserId,
+        socketConnected,
+        typingUsers,
       ];
 }
