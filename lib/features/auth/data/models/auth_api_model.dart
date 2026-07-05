@@ -26,7 +26,7 @@ class AuthApiModel {
       'username': username,
       'password': password,
       'confirmPassword': confirmPassword,
-    };
+    }..removeWhere((_, v) => v == null);
   }
 
   factory AuthApiModel.fromJson(Map<String, dynamic> json) {
