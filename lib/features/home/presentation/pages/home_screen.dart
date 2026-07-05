@@ -7,6 +7,7 @@ import 'package:EliteReurbLap/features/laptop/presentation/pages/add_laptop_scre
 import 'package:EliteReurbLap/features/laptop/presentation/pages/laptop_details_screen.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/state/laptop_state.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/view_model/laptop_viewmodel.dart';
+import 'package:EliteReurbLap/features/chat/presentation/pages/chat_list_screen.dart';
 import 'package:EliteReurbLap/features/profile/presentation/pages/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -60,6 +61,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => const AddLaptopScreen(),
+              ),
+            );
+          } else if (index == 3) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const ChatListScreen(),
               ),
             );
           } else if (index == 4) {
