@@ -1,17 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:EliteReurbLap/app/theme/app_color.dart';
-import 'package:EliteReurbLap/features/chat/presentation/widgets/chat_message_model.dart';
+import 'package:EliteReurbLap/features/chat/domain/entities/message_entity.dart';
 
 class ChatMessageBubble extends StatelessWidget {
-  final ChatMessage message;
+  final MessageEntity message;
+  final String currentUserId;
 
-  const ChatMessageBubble({super.key, required this.message});
+  const ChatMessageBubble({
+    super.key,
+    required this.message,
+    required this.currentUserId,
+  });
+
+  bool get _isMine => message.senderId == currentUserId;
+
+  String _formatTime() {
+    if (message.createdAt == null) return '';
+    return DateFormat('h:mm a').format(message.createdAt!);
+  }
 
   @override
   Widget build(BuildContext context) {
     final maxWidth = MediaQuery.of(context).size.width * 0.78;
 
-    if (message.isMine) {
+    if (_isMine) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 4),
         child: Column(
@@ -20,7 +33,8 @@ class ChatMessageBubble extends StatelessWidget {
             ConstrainedBox(
               constraints: BoxConstraints(maxWidth: maxWidth),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: const ShapeDecoration(
                   color: AppColors.bubbleMineBg,
                   shape: RoundedRectangleBorder(
@@ -33,7 +47,7 @@ class ChatMessageBubble extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  message.text,
+                  message.content,
                   style: const TextStyle(
                     color: AppColors.bubbleMineFg,
                     fontSize: 16,
@@ -50,7 +64,7 @@ class ChatMessageBubble extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    message.time,
+                    _formatTime(),
                     style: const TextStyle(
                       color: Color(0xFF4B454A),
                       fontSize: 10,
@@ -60,9 +74,9 @@ class ChatMessageBubble extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Icon(
-                    message.isRead ? Icons.done_all : Icons.done,
+                    message.readAt != null ? Icons.done_all : Icons.done,
                     size: 12,
-                    color: message.isRead
+                    color: message.readAt != null
                         ? const Color(0xFF4CAF50)
                         : const Color(0xFF4B454A),
                   ),
@@ -81,7 +95,8 @@ class ChatMessageBubble extends StatelessWidget {
             ConstrainedBox(
               constraints: BoxConstraints(maxWidth: maxWidth),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: const ShapeDecoration(
                   color: AppColors.bubbleTheirsBg,
                   shape: RoundedRectangleBorder(
@@ -98,7 +113,7 @@ class ChatMessageBubble extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  message.text,
+                  message.content,
                   style: const TextStyle(
                     color: Color(0xFF1A1C1C),
                     fontSize: 16,
@@ -112,7 +127,7 @@ class ChatMessageBubble extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(left: 4),
               child: Text(
-                message.time,
+                _formatTime(),
                 style: const TextStyle(
                   color: Color(0xFF4B454A),
                   fontSize: 10,

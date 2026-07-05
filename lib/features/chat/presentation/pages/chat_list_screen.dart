@@ -1,24 +1,82 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:EliteReurbLap/app/theme/app_color.dart';
+import 'package:EliteReurbLap/features/chat/domain/entities/chat_entity.dart';
 import 'package:EliteReurbLap/features/chat/presentation/pages/chat_detail_screen.dart';
+import 'package:EliteReurbLap/features/chat/presentation/state/chat_state.dart';
+import 'package:EliteReurbLap/features/chat/presentation/view_model/chat_viewmodel.dart';
 import 'package:EliteReurbLap/features/chat/presentation/widgets/chat_filter_bar.dart';
 import 'package:EliteReurbLap/features/chat/presentation/widgets/chat_list_tile.dart';
-import 'package:EliteReurbLap/features/chat/presentation/widgets/chat_preview_model.dart';
 import 'package:EliteReurbLap/features/home/presentation/widgets/home_bottom_nav_bar.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/pages/add_laptop_screen.dart';
+import 'package:intl/intl.dart';
 
-class ChatListScreen extends StatefulWidget {
+class ChatListScreen extends ConsumerStatefulWidget {
   const ChatListScreen({super.key});
 
   @override
-  State<ChatListScreen> createState() => _ChatListScreenState();
+  ConsumerState<ChatListScreen> createState() => _ChatListScreenState();
 }
 
-class _ChatListScreenState extends State<ChatListScreen> {
+class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   int _selectedFilter = 0;
 
   @override
+  void initState() {
+    super.initState();
+    // Load conversations when the screen opens
+    Future.microtask(() {
+      ref.read(chatViewModelProvider.notifier).getConversations();
+    });
+  }
+
+  String _formatTime(DateTime? dateTime) {
+    if (dateTime == null) return '';
+    final now = DateTime.now();
+    final diff = now.difference(dateTime);
+
+    if (diff.inMinutes < 60) {
+      return '${diff.inMinutes}m ago';
+    } else if (diff.inHours < 24) {
+      return '${diff.inHours}h ago';
+    } else if (diff.inDays < 7) {
+      return '${diff.inDays}d ago';
+    } else {
+      return DateFormat('MMM d').format(dateTime);
+    }
+  }
+
+  int _unreadForCurrentUser(ChatEntity chat, String currentUserId) {
+    if (currentUserId.isEmpty) return 0;
+    if (chat.buyerId == currentUserId) return chat.buyerUnreadCount;
+    if (chat.sellerId == currentUserId) return chat.sellerUnreadCount;
+    return 0;
+  }
+
+  bool _isCurrentUserBuyer(ChatEntity chat, String currentUserId) {
+    return chat.buyerId == currentUserId;
+  }
+
+  List<ChatEntity> _filteredConversations(ChatState chatState) {
+    final conversations = chatState.conversations;
+    switch (_selectedFilter) {
+      case 0: // ALL MESSAGES
+        return conversations;
+      case 1: // UNREAD
+        return conversations.where((c) => _unreadForCurrentUser(c, chatState.currentUserId) > 0).toList();
+      case 2: // BUYING
+        return conversations.where((c) => c.buyerId == chatState.currentUserId).toList();
+      case 3: // SELLING
+        return conversations.where((c) => c.sellerId == chatState.currentUserId).toList();
+      default:
+        return conversations;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final chatState = ref.watch(chatViewModelProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: _buildAppBar(),
@@ -31,7 +89,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
               onFilterChanged: (index) =>
                   setState(() => _selectedFilter = index),
             ),
-            Expanded(child: _buildChatList()),
+            Expanded(child: _buildChatList(chatState)),
           ],
         ),
       ),
@@ -105,14 +163,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
             borderRadius: BorderRadius.circular(9999),
           ),
         ),
-        child: Row(
+        child: const Row(
           children: [
-            const Icon(Icons.search, size: 18, color: AppColors.textHint),
-            const SizedBox(width: 10),
+            Icon(Icons.search, size: 18, color: AppColors.textHint),
+            SizedBox(width: 10),
             Text(
               'Search conversations...',
               style: TextStyle(
-                color: AppColors.textHint.withValues(alpha: 0.8),
+                color: AppColors.textHint,
                 fontSize: 13,
                 fontWeight: FontWeight.w400,
               ),
@@ -123,23 +181,37 @@ class _ChatListScreenState extends State<ChatListScreen> {
     );
   }
 
-  List<ChatPreview> _filteredConversations() {
-    switch (_selectedFilter) {
-      case 0: // ALL MESSAGES
-        return mockConversations;
-      case 1: // UNREAD
-        return mockConversations.where((c) => c.unreadCount > 0).toList();
-      case 2: // BUYING
-        return mockConversations.where((c) => c.isBuyer).toList();
-      case 3: // SELLING
-        return mockConversations.where((c) => !c.isBuyer).toList();
-      default:
-        return mockConversations;
+  Widget _buildChatList(ChatState chatState) {
+    if (chatState.status == ChatStatus.loading && chatState.conversations.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
     }
-  }
 
-  Widget _buildChatList() {
-    final conversations = _filteredConversations();
+    if (chatState.status == ChatStatus.error && chatState.conversations.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: AppColors.textDisabled),
+              const SizedBox(height: 16),
+              Text(
+                chatState.errorMessage ?? 'Something went wrong',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => ref.read(chatViewModelProvider.notifier).getConversations(),
+                child: const Text('Try again'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final conversations = _filteredConversations(chatState);
 
     if (conversations.isEmpty) {
       return Center(
@@ -193,23 +265,30 @@ class _ChatListScreenState extends State<ChatListScreen> {
       ),
       itemBuilder: (context, index) {
         final chat = conversations[index];
+        final unread = _unreadForCurrentUser(chat, chatState.currentUserId);
+        final isBuyer = _isCurrentUserBuyer(chat, chatState.currentUserId);
+        final otherName = chat.otherParticipantName ?? 'Unknown';
+        final otherImage = chat.otherParticipantImage;
+
         return ChatListTile(
-          name: chat.name,
-          lastMessage: chat.lastMessage,
-          time: chat.time,
-          unreadCount: chat.unreadCount,
-          isOnline: chat.isOnline,
-          imageUrl: chat.imageUrl,
+          name: otherName,
+          lastMessage: chat.lastMessage ?? '',
+          time: _formatTime(chat.lastMessageAt),
+          unreadCount: unread,
+          isOnline: false,
+          imageUrl: otherImage,
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => ChatDetailScreen(
-                  name: chat.name,
-                  imageUrl: chat.imageUrl,
-                  isOnline: chat.isOnline,
-                  laptopTitle: chat.laptopTitle,
-                  laptopPrice: chat.laptopPrice,
-                  isBuyer: chat.isBuyer,
+                  conversationId: chat.id ?? '',
+                  otherParticipantName: otherName,
+                  otherParticipantImage: otherImage,
+                  isOnline: false,
+                  isBuyer: isBuyer,
+                  laptopTitle: chat.laptopTitle ?? 'Laptop',
+                  laptopPrice: chat.laptopPrice ?? '',
+                  laptopImage: chat.laptopImage,
                 ),
               ),
             );

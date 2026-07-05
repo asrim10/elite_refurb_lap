@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class ChatInputBar extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onSend;
+  final ValueChanged<String>? onTextChanged;
 
   const ChatInputBar({
     super.key,
     required this.controller,
     required this.onSend,
+    this.onTextChanged,
   });
 
   @override
@@ -55,6 +57,7 @@ class ChatInputBar extends StatelessWidget {
                   Expanded(
                     child: TextField(
                       controller: controller,
+                      onChanged: onTextChanged,
                       decoration: const InputDecoration(
                         hintText: 'Type a message...',
                         hintStyle: TextStyle(
