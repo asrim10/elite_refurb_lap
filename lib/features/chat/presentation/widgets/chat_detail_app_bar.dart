@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:EliteReurbLap/core/api/api_endpoints.dart';
 
 class ChatDetailAppBar extends StatelessWidget {
   final String name;
@@ -57,7 +58,7 @@ class ChatDetailAppBar extends StatelessWidget {
                           : const Color(0xFFFBDCCD),
                       image: imageUrl != null
                           ? DecorationImage(
-                              image: NetworkImage(imageUrl!),
+                              image: NetworkImage(ApiEndpoints.getImageUrl(imageUrl!)),
                               fit: BoxFit.cover,
                             )
                           : null,

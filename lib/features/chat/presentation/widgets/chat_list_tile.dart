@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:EliteReurbLap/app/theme/app_color.dart';
+import 'package:EliteReurbLap/core/api/api_endpoints.dart';
 
 class ChatListTile extends StatelessWidget {
   final String name;
@@ -52,7 +53,7 @@ class ChatListTile extends StatelessWidget {
                     decoration: ShapeDecoration(
                       image: imageUrl != null
                           ? DecorationImage(
-                              image: NetworkImage(imageUrl!),
+                              image: NetworkImage(ApiEndpoints.getImageUrl(imageUrl!)),
                               fit: BoxFit.cover,
                             )
                           : null,

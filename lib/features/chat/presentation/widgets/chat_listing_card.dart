@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:EliteReurbLap/core/api/api_endpoints.dart';
 
 class ChatListingCard extends StatelessWidget {
   final String title;
@@ -33,7 +34,7 @@ class ChatListingCard extends StatelessWidget {
             ),
             child: imageUrl != null
                 ? Image.network(
-                    imageUrl!,
+                    ApiEndpoints.getImageUrl(imageUrl!),
                     fit: BoxFit.cover,
                     width: 48,
                     height: 48,

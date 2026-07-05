@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:EliteReurbLap/features/chat/presentation/pages/chat_detail_screen.dart';
+import 'package:EliteReurbLap/features/chat/presentation/view_model/chat_viewmodel.dart';
 import 'package:EliteReurbLap/features/laptop/domain/entities/laptop_entity.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/state/laptop_state.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/view_model/laptop_viewmodel.dart';
@@ -66,15 +68,7 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
                         ),
                       );
                     },
-                    onChatNow: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Chat - Coming soon'),
-                          backgroundColor: Color(0xFF2D6A3F),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
+                    onChatNow: () => _onChatNow(laptop),
                   ),
                 ],
               ),
@@ -177,6 +171,77 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
       }
     }
     return null;
+  }
+
+  Future<void> _onChatNow(LaptopEntity laptop) async {
+    final sellerName = _resolveSellerName(laptop) ?? 'the seller';
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.chat_outlined, size: 22, color: Color(0xFF705A4E)),
+            const SizedBox(width: 10),
+            const Text(
+              'Start Chat',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+        content: Text(
+          'Start a conversation with $sellerName about\n'
+          '${laptop.title}?',
+          style: const TextStyle(fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Yes, Chat Now',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF2D6A3F),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    // Get or create conversation and navigate
+    await ref.read(chatViewModelProvider.notifier).getOrCreateConversationByLaptop(
+      laptopId: laptop.id!,
+      sellerId: laptop.sellerId!,
+      initialMessage: 'Hi, is this available?',
+    );
+
+    final chatState = ref.read(chatViewModelProvider);
+    final convo = chatState.selectedConversation;
+
+    if (!mounted) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChatDetailScreen(
+          conversationId: convo?.id ?? '',
+          otherParticipantName: sellerName,
+          otherParticipantImage: _resolveSellerImage(laptop),
+          isBuyer: true,
+          laptopTitle: laptop.title,
+          laptopPrice: 'NPR ${laptop.price.toStringAsFixed(0)}',
+          laptopImage: laptop.images.isNotEmpty ? laptop.images.first : null,
+        ),
+      ),
+    );
   }
 
   /// Resolves the seller profile image for the seller card.
