@@ -19,6 +19,15 @@ class ChatRemoteDatasource implements IChatRemoteDataSource {
     required ApiClient apiClient,
   }) : _apiClient = apiClient;
 
+  /// Unwraps conversation data that may be nested under a "conversation" key
+  /// (as the startConversation endpoint does) or returned directly.
+  Map<String, dynamic> _unwrapConversation(Map<String, dynamic> data) {
+    if (data.containsKey('conversation') && data['conversation'] is Map) {
+      return data['conversation'] as Map<String, dynamic>;
+    }
+    return data;
+  }
+
   @override
   Future<ChatApiModel> startConversation({
     required String laptopId,
@@ -34,7 +43,7 @@ class ChatRemoteDatasource implements IChatRemoteDataSource {
       },
     );
     final data = response.data['data'] as Map<String, dynamic>;
-    return ChatApiModel.fromJson(data);
+    return ChatApiModel.fromJson(_unwrapConversation(data));
   }
 
   @override
@@ -58,7 +67,7 @@ class ChatRemoteDatasource implements IChatRemoteDataSource {
       '${ApiEndpoints.chatById}$id',
     );
     final data = response.data['data'] as Map<String, dynamic>;
-    return ChatApiModel.fromJson(data);
+    return ChatApiModel.fromJson(_unwrapConversation(data));
   }
 
   @override
@@ -68,7 +77,7 @@ class ChatRemoteDatasource implements IChatRemoteDataSource {
     );
     final data = response.data['data'] as Map<String, dynamic>?;
     if (data == null) return null;
-    return ChatApiModel.fromJson(data);
+    return ChatApiModel.fromJson(_unwrapConversation(data));
   }
 
   @override

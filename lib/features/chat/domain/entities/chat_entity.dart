@@ -16,6 +16,10 @@ class ChatEntity extends Equatable {
   final String? laptopImage;
   final String? otherParticipantName;
   final String? otherParticipantImage;
+  final String? sellerName;
+  final String? sellerImage;
+  final String? buyerName;
+  final String? buyerImage;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -35,9 +39,25 @@ class ChatEntity extends Equatable {
     this.laptopImage,
     this.otherParticipantName,
     this.otherParticipantImage,
+    this.sellerName,
+    this.sellerImage,
+    this.buyerName,
+    this.buyerImage,
     this.createdAt,
     this.updatedAt,
   });
+
+  /// Returns the other participant's display name based on who the current user is.
+  String? resolveOtherName(String currentUserId) {
+    if (sellerId == currentUserId) return buyerName ?? 'Unknown';
+    return sellerName ?? otherParticipantName ?? 'Unknown';
+  }
+
+  /// Returns the other participant's profile image based on who the current user is.
+  String? resolveOtherImage(String currentUserId) {
+    if (sellerId == currentUserId) return buyerImage;
+    return sellerImage ?? otherParticipantImage;
+  }
 
   @override
   List<Object?> get props => [
@@ -56,6 +76,10 @@ class ChatEntity extends Equatable {
         laptopImage,
         otherParticipantName,
         otherParticipantImage,
+        sellerName,
+        sellerImage,
+        buyerName,
+        buyerImage,
         createdAt,
         updatedAt,
       ];

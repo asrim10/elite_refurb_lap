@@ -7,11 +7,11 @@ class ApiEndpoints {
 
   static const bool isPhysicalDevice = false;
 
-  static const String compIpAddress = "192.168.1.66";
+  static const String compIpAddress = "192.168.1.68";
 
   static String get baseUrl {
     if (isPhysicalDevice) {
-      return 'http://$compIpAddress:3000/api/v1';
+      return 'http://$compIpAddress:5050/api';
     }
     // if android
     if (kIsWeb) {

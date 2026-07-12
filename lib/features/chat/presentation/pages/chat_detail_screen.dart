@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:EliteReurbLap/core/services/storage/user_session_service.dart';
 import 'package:EliteReurbLap/features/chat/domain/entities/message_entity.dart';
 import 'package:EliteReurbLap/features/chat/presentation/state/chat_state.dart';
 import 'package:EliteReurbLap/features/chat/presentation/view_model/chat_viewmodel.dart';
@@ -41,6 +42,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isTyping = false;
+  late final ChatViewModel _chatVm; // saved to avoid ref.read() in dispose()
 
   // Quick replies based on role
   late final List<String> _quickReplies = widget.isBuyer
@@ -60,13 +62,37 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.conversationId.isNotEmpty) {
-      Future.microtask(() {
-        final vm = ref.read(chatViewModelProvider.notifier);
-        vm.getMessages(conversationId: widget.conversationId);
-        vm.joinConversation(widget.conversationId);
-      });
-    }
+
+    _chatVm = ref.read(chatViewModelProvider.notifier);
+
+    Future.microtask(() async {
+      // 1. Set currentUserId from session BEFORE loading messages
+      final sessionService = ref.read(userSessionServiceProvider);
+      final userId = sessionService.getCurrentUserId();
+      if (userId != null && userId.isNotEmpty) {
+        await _chatVm.setCurrentUserId(userId);
+      }
+
+      // 2. Now load messages (userId is already set)
+      if (widget.conversationId.isNotEmpty) {
+        // Load conversation details if not already loaded (e.g., when entering
+        // from laptop_details_screen via getOrCreateConversationByLaptop,
+        // selectedConversation is already set). This is needed for the
+        // isViewing check in _updateConversationPreviewFromEvent.
+        final currentState = ref.read(chatViewModelProvider);
+        if (currentState.selectedConversation?.id != widget.conversationId) {
+          await _chatVm.getConversationById(widget.conversationId);
+        }
+
+        await _chatVm.getMessages(conversationId: widget.conversationId);
+        _chatVm.joinConversation(widget.conversationId);
+
+        // 3. Mark this conversation as read (resets unread count on server
+        //    and broadcasts conversation:read to other participants)
+        _chatVm.markAsReadViaSocket(widget.conversationId);
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
     });
@@ -75,9 +101,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   @override
   void dispose() {
     if (widget.conversationId.isNotEmpty) {
-      ref.read(chatViewModelProvider.notifier).leaveConversation(
-            widget.conversationId,
-          );
+      _chatVm.leaveConversation(widget.conversationId);
     }
     _messageController.dispose();
     _scrollController.dispose();
@@ -165,24 +189,25 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
 
   String _formatDateLabel(DateTime? dateTime) {
     if (dateTime == null) return '';
+    final local = dateTime.toLocal();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final date = DateTime(dateTime.year, dateTime.month, dateTime.day);
-    final timeStr = DateFormat('h:mm a').format(dateTime);
+    final date = DateTime(local.year, local.month, local.day);
+    final timeStr = DateFormat('h:mm a').format(local);
 
     if (date == today) {
       return 'Today · $timeStr';
     } else if (date == today.subtract(const Duration(days: 1))) {
       return 'Yesterday · $timeStr';
     } else {
-      return '${DateFormat('MMM d').format(dateTime)} · $timeStr';
+      return '${DateFormat('MMM d').format(local)} · $timeStr';
     }
   }
 
   bool _shouldShowDateSeparator(int index, List<MessageEntity> messages) {
     if (index == 0) return true;
-    final current = messages[index].createdAt;
-    final previous = messages[index - 1].createdAt;
+    final current = messages[index].createdAt?.toLocal();
+    final previous = messages[index - 1].createdAt?.toLocal();
     if (current == null || previous == null) return false;
     // Show separator if they're on different days
     final currentDay = DateTime(current.year, current.month, current.day);
@@ -285,11 +310,15 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
 
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.only(left: 12, right: 12, top: 8, bottom: 8),
       itemCount: messages.length,
       itemBuilder: (context, index) {
         final message = messages[index];
         final showDateSeparator = _shouldShowDateSeparator(index, messages);
+        final isFirstInGroup = index == 0 ||
+            messages[index - 1].senderId != message.senderId;
+        final isLastInGroup = index == messages.length - 1 ||
+            messages[index + 1].senderId != message.senderId;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -301,6 +330,11 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
             ChatMessageBubble(
               message: message,
               currentUserId: chatState.currentUserId,
+              isFirstInGroup: isFirstInGroup,
+              isLastInGroup: isLastInGroup,
+              otherUserImage: !isFirstInGroup
+                  ? null
+                  : widget.otherParticipantImage,
             ),
           ],
         );

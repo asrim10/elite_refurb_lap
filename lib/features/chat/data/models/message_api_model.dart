@@ -28,8 +28,42 @@ class MessageApiModel {
     this.updatedAt,
   });
 
-  factory MessageApiModel.fromJson(Map<String, dynamic> json) =>
-      _$MessageApiModelFromJson(json);
+  /// Safely extracts a string ID from a value that may be a plain string
+  /// or a populated object (MongoDB populate).
+  /// Handles both `_id` (MongoDB convention) and `id` (alternative) field names.
+  static String _parseId(dynamic value) {
+    if (value is Map) {
+      final id = value['_id'] ?? value['id'];
+      if (id is String) return id;
+      if (id != null) return id.toString();
+      return '';
+    }
+    if (value is String) return value;
+    return '';
+  }
+
+  factory MessageApiModel.fromJson(Map<String, dynamic> json) {
+    final senderId = _parseId(json['senderId']);
+    final conversationId = _parseId(json['conversationId']);
+
+    return MessageApiModel(
+      id: json['_id'] as String?,
+      conversationId: conversationId,
+      senderId: senderId,
+      content: json['content'] as String? ?? '',
+      messageType: json['messageType'] as String? ?? 'text',
+      fileUrl: json['fileUrl'] as String?,
+      readAt: json['readAt'] == null
+          ? null
+          : DateTime.parse(json['readAt'] as String),
+      createdAt: json['createdAt'] == null
+          ? null
+          : DateTime.parse(json['createdAt'] as String),
+      updatedAt: json['updatedAt'] == null
+          ? null
+          : DateTime.parse(json['updatedAt'] as String),
+    );
+  }
 
   Map<String, dynamic> toJson() => _$MessageApiModelToJson(this);
 

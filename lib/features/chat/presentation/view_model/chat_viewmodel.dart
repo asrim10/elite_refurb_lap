@@ -1,5 +1,8 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+import 'package:EliteReurbLap/features/auth/presentation/state/auth_state.dart';
+import 'package:EliteReurbLap/features/auth/presentation/view_model/auth_viewmodel.dart';
 import 'package:EliteReurbLap/features/chat/data/services/chat_socket_service.dart';
 import 'package:EliteReurbLap/features/chat/domain/entities/chat_entity.dart';
 import 'package:EliteReurbLap/features/chat/domain/entities/message_entity.dart';
@@ -68,6 +71,13 @@ class ChatViewModel extends Notifier<ChatState> {
       );
     });
 
+    // Disconnect the socket when the user logs out
+    ref.listen(authViewModelProvider, (prev, next) {
+      if (next.status == AuthStatus.unauthenticated) {
+        _socketService.disconnect();
+      }
+    });
+
     // Clean up subscriptions when the provider is disposed
     ref.onDispose(() {
       _newMessageSub?.cancel();
@@ -86,9 +96,14 @@ class ChatViewModel extends Notifier<ChatState> {
   // ---- Socket lifecycle ----
 
   /// Set the current user ID and automatically connect the socket.
+  /// Disconnects any old socket first so the new connection uses the current
+  /// user's auth token (critical when switching accounts without a full restart).
   Future<void> setCurrentUserId(String userId) async {
+    debugPrint('🔍 setCurrentUserId: $userId');
     state = state.copyWith(currentUserId: userId);
     if (userId.isNotEmpty) {
+      // Disconnect old socket so it reconnects with the new user's token
+      _socketService.disconnect();
       await _socketService.connect();
     }
   }
@@ -283,7 +298,7 @@ class ChatViewModel extends Notifier<ChatState> {
       ),
       (messages) => state = state.copyWith(
         status: ChatStatus.messagesLoaded,
-        messages: messages,
+        messages: _sortMessages(messages),
       ),
     );
   }
@@ -292,17 +307,45 @@ class ChatViewModel extends Notifier<ChatState> {
 
   /// Send a message via Socket.IO.
   /// The server persists it and broadcasts `new:message` back to the room.
-  /// The [_onNewMessage] handler adds the returned message to state.
+  /// Shows the message immediately (optimistic), then replaces it with the
+  /// server-validated version when the broadcast arrives.
   void sendSocketMessage({
     required String conversationId,
     required String content,
     String messageType = 'text',
   }) {
+    // Debug: log currentUserId at send time
+    debugPrint('🔍 sendSocketMessage: conversationId=$conversationId content="$content" currentUserId="${state.currentUserId}"');
+
+    // Optimistic UI: show the message immediately
+    final tempId = 'opt_${DateTime.now().millisecondsSinceEpoch}';    final optimisticMessage = MessageEntity(
+      id: tempId,
+      conversationId: conversationId,
+      senderId: state.currentUserId,
+      content: content,
+      messageType: messageType,
+      createdAt: DateTime.now(),
+    );
+    state = state.copyWith(
+      status: ChatStatus.sent,
+      messages: _sortMessages([...state.messages, optimisticMessage]),
+    );
+
+    // Update conversation preview locally (server no longer echoes
+    // new:message back to the sender when using broadcast.to()).
+    _updateConversationPreview(optimisticMessage);
+
+    // Send via socket — server broadcasts new:message to other users
     _socketService.sendMessage(
       conversationId: conversationId,
       content: content,
       messageType: messageType,
     );
+
+    // Mark as read right after sending — this prevents the conversation:updated
+    // event from the server (which may carry the wrong lastMessageSender)
+    // from incrementing the current user's own unread count.
+    _socketService.markAsRead(conversationId);
   }
 
   /// Mark conversation as read via Socket.IO.
@@ -331,7 +374,7 @@ class ChatViewModel extends Notifier<ChatState> {
       ),
       (message) => state = state.copyWith(
         status: ChatStatus.sent,
-        messages: [...state.messages, message],
+        messages: _sortMessages([...state.messages, message]),
       ),
     );
   }
@@ -391,19 +434,35 @@ class ChatViewModel extends Notifier<ChatState> {
   // ---- Socket event handlers ----
 
   void _onNewMessage(MessageEntity message) {
-    // Add message to the messages list if we're viewing that conversation
-    final currentConvoId = state.selectedConversation?.id;
-    if (currentConvoId != null &&
-        message.conversationId == currentConvoId) {
-      // Avoid duplicates (in case of optimistic + server response race)
-      final alreadyExists =
-          state.messages.any((m) => m.id != null && m.id == message.id);
-      if (!alreadyExists) {
-        state = state.copyWith(
-          status: ChatStatus.messagesLoaded,
-          messages: [...state.messages, message],
-        );
-      }
+    // Debug: log the actual senderId from the server vs currentUserId
+    debugPrint('🔍 _onNewMessage: senderId="${message.senderId}" currentUserId="${state.currentUserId}" content="${message.content}" isMine=${message.senderId == state.currentUserId}');
+
+    // Determine viewing conversation: use selectedConversation, or infer from
+    // loaded messages (relevant when navigating from ChatListScreen where
+    // selectedConversation is not explicitly set).
+    final currentConvoId = state.selectedConversation?.id ??
+        (state.messages.isNotEmpty
+            ? state.messages.first.conversationId
+            : null);
+
+    if (currentConvoId == null || message.conversationId != currentConvoId) {
+      // Message is for a different conversation — just update the conversation
+      // preview (last message + timestamp) and skip adding to messages list.
+      _updateConversationPreview(message);
+      return;
+    }
+
+    // Server now uses socket.broadcast.to() for new:message, so the sender
+    // never receives their own echo. All incoming new:message events are
+    // from the other participant. Just add to the messages list if not a
+    // duplicate and update the conversation preview.
+    final alreadyExists =
+        state.messages.any((m) => m.id != null && m.id == message.id);
+    if (!alreadyExists) {
+      state = state.copyWith(
+        status: ChatStatus.messagesLoaded,
+        messages: _sortMessages([...state.messages, message]),
+      );
     }
 
     // Update the conversation preview (last message, timestamp, etc.)
@@ -454,6 +513,24 @@ class ChatViewModel extends Notifier<ChatState> {
 
   // ---- Helper methods ----
 
+  /// Sort messages in strict ascending chronological order (oldest first).
+  /// Uses [createdAt] as the primary key and [id] as the secondary tiebreaker
+  /// so order stays stable when timestamps are identical.
+  List<MessageEntity> _sortMessages(List<MessageEntity> messages) {
+    final sorted = List<MessageEntity>.from(messages);
+    sorted.sort((a, b) {
+      final aTime = a.createdAt?.millisecondsSinceEpoch ?? 0;
+      final bTime = b.createdAt?.millisecondsSinceEpoch ?? 0;
+      final cmp = aTime.compareTo(bTime);
+      if (cmp != 0) return cmp;
+      // Stable tiebreaker: compare by id (null-safe, string comparison)
+      final aId = a.id ?? '';
+      final bId = b.id ?? '';
+      return aId.compareTo(bId);
+    });
+    return sorted;
+  }
+
   void _updateConversationPreview(MessageEntity message) {
     final updatedList = state.conversations.map((c) {
       if (c.id == message.conversationId && c.id != null) {
@@ -474,6 +551,10 @@ class ChatViewModel extends Notifier<ChatState> {
           laptopImage: c.laptopImage,
           otherParticipantName: c.otherParticipantName,
           otherParticipantImage: c.otherParticipantImage,
+          sellerName: c.sellerName,
+          sellerImage: c.sellerImage,
+          buyerName: c.buyerName,
+          buyerImage: c.buyerImage,
           createdAt: c.createdAt,
           updatedAt: message.createdAt ?? c.updatedAt,
         );
@@ -488,6 +569,38 @@ class ChatViewModel extends Notifier<ChatState> {
     final updatedList = state.conversations.map((c) {
       if (c.id == event.conversationId && c.id != null) {
         final isFromOther = event.lastMessageSender != state.currentUserId;
+        // Check if we're actively viewing this conversation — if so, the
+        // user has already seen the latest messages in real-time, so don't
+        // bump the unread count.
+        // selectedConversation is set when entering from laptop details screen.
+        // When entering from ChatListScreen, fall back to checking if the
+        // currently loaded messages belong to this conversation.
+        final isViewing = state.selectedConversation?.id == event.conversationId ||
+            (state.messages.isNotEmpty &&
+             state.messages.first.conversationId == event.conversationId);
+
+        // Only increment the unread count for the CURRENT user (recipient),
+        // not both participants. The sender's unread count should stay the same.
+        final int newBuyerUnread;
+        final int newSellerUnread;
+        if (isViewing) {
+          // User is currently viewing this conversation — preserve the existing
+          // count (already set to 0 by markAsReadViaSocket on open) without
+          // bumping it. Don't reset to 0 here because selectedConversation may
+          // linger after leaving the detail screen, which would freeze the badge.
+          newBuyerUnread = c.buyerUnreadCount;
+          newSellerUnread = c.sellerUnreadCount;
+        } else if (isFromOther && c.buyerId == state.currentUserId) {
+          newBuyerUnread = c.buyerUnreadCount + 1;
+          newSellerUnread = c.sellerUnreadCount;
+        } else if (isFromOther && c.sellerId == state.currentUserId) {
+          newBuyerUnread = c.buyerUnreadCount;
+          newSellerUnread = c.sellerUnreadCount + 1;
+        } else {
+          // Message was sent by the current user themselves — no unread increment
+          newBuyerUnread = c.buyerUnreadCount;
+          newSellerUnread = c.sellerUnreadCount;
+        }
         return ChatEntity(
           id: c.id,
           laptopId: c.laptopId,
@@ -496,14 +609,18 @@ class ChatViewModel extends Notifier<ChatState> {
           lastMessage: event.lastMessage ?? c.lastMessage,
           lastMessageAt: event.lastMessageAt ?? c.lastMessageAt,
           lastMessageSender: event.lastMessageSender ?? c.lastMessageSender,
-          buyerUnreadCount: isFromOther ? c.buyerUnreadCount + 1 : c.buyerUnreadCount,
-          sellerUnreadCount: isFromOther ? c.sellerUnreadCount + 1 : c.sellerUnreadCount,
+          buyerUnreadCount: newBuyerUnread,
+          sellerUnreadCount: newSellerUnread,
           status: c.status,
           laptopTitle: c.laptopTitle,
           laptopPrice: c.laptopPrice,
           laptopImage: c.laptopImage,
           otherParticipantName: c.otherParticipantName,
           otherParticipantImage: c.otherParticipantImage,
+          sellerName: c.sellerName,
+          sellerImage: c.sellerImage,
+          buyerName: c.buyerName,
+          buyerImage: c.buyerImage,
           createdAt: c.createdAt,
           updatedAt: event.lastMessageAt ?? c.updatedAt,
         );
@@ -533,6 +650,10 @@ class ChatViewModel extends Notifier<ChatState> {
           laptopImage: c.laptopImage,
           otherParticipantName: c.otherParticipantName,
           otherParticipantImage: c.otherParticipantImage,
+          sellerName: c.sellerName,
+          sellerImage: c.sellerImage,
+          buyerName: c.buyerName,
+          buyerImage: c.buyerImage,
           createdAt: c.createdAt,
           updatedAt: c.updatedAt,
         );

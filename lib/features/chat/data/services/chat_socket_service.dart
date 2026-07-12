@@ -82,8 +82,17 @@ class ChatSocketService {
     }
 
     try {
+      // Add a unique cache-busting query parameter to force a fresh
+      // Engine.IO connection each time. Without this, the socket_io_client
+      // package may reuse a cached WebSocket transport with the old auth
+      // token when switching accounts, causing the server to attribute
+      // messages to the wrong user.
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final url = '$_socketUrl?_ts=$timestamp';
+      debugPrint('🔌 Connecting with fresh socket URL: $url');
+
       _socket = io.io(
-        _socketUrl,
+        url,
         io.OptionBuilder()
             .setTransports(['websocket']) // Use WebSocket for Flutter
             .setAuth({'token': token}) // JWT auth via handshake
@@ -201,17 +210,46 @@ class ChatSocketService {
   // ---- Incoming event handlers ----
 
   void _handleNewMessage(dynamic data) {
-    if (data is! Map<String, dynamic>) return;
+    if (data is! Map<String, dynamic>) {
+      debugPrint('🔌 new:message data is not a Map: $data (type=${data.runtimeType})');
+      return;
+    }
+
+    // Log the raw keys for debugging server response structure
+    debugPrint('🔌 new:message raw keys: [${data.keys.join(', ')}]');
+
+    // Some server implementations wrap the message object under a "message" key
+    // or "data" key. Unwrap if present so fromJson gets the message fields directly.
+    // Check both independently in case the server nests it under both.
+    Map<String, dynamic> messageData = data;
+    if (data.containsKey('message') && data['message'] is Map<String, dynamic>) {
+      messageData = data['message'] as Map<String, dynamic>;
+      debugPrint('🔌 new:message unwrapped from "message" key');
+    }
+    if (data.containsKey('data') && data['data'] is Map<String, dynamic>) {
+      // Only override if we didn't already unwrap from "message", or "message"
+      // wasn't present.
+      if (!data.containsKey('message') || data['message'] is! Map<String, dynamic>) {
+        messageData = data['data'] as Map<String, dynamic>;
+        debugPrint('🔌 new:message unwrapped from "data" key');
+      }
+    }
+
     try {
-      final model = MessageApiModel.fromJson(data);
+      final model = MessageApiModel.fromJson(messageData);
+      debugPrint('🔌 new:message parsed -> senderId="${model.senderId}" convId="${model.conversationId}" content="${model.content}"');
       _newMessageController.add(model.toEntity());
     } catch (e) {
-      debugPrint('🔌 Error parsing new:message: $e');
+      debugPrint('🔌 Error parsing new:message: $e — raw data keys: [${messageData.keys.join(', ')}]');
     }
   }
 
   void _handleConversationUpdated(dynamic data) {
-    if (data is! Map<String, dynamic>) return;
+    if (data is! Map<String, dynamic>) {
+      debugPrint('🔌 conversation:updated data is not a Map: $data');
+      return;
+    }
+    debugPrint('🔌 conversation:updated -> convId=${data['conversationId']} lastMsgSender=${data['lastMessageSender']}');
     try {
       _conversationUpdatedController.add(ConversationUpdateEvent(
         conversationId: data['conversationId'] as String,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:EliteReurbLap/app/theme/app_color.dart';
+import 'package:EliteReurbLap/core/services/storage/user_session_service.dart';
 import 'package:EliteReurbLap/features/chat/domain/entities/chat_entity.dart';
 import 'package:EliteReurbLap/features/chat/presentation/pages/chat_detail_screen.dart';
 import 'package:EliteReurbLap/features/chat/presentation/state/chat_state.dart';
@@ -9,7 +11,6 @@ import 'package:EliteReurbLap/features/chat/presentation/widgets/chat_filter_bar
 import 'package:EliteReurbLap/features/chat/presentation/widgets/chat_list_tile.dart';
 import 'package:EliteReurbLap/features/home/presentation/widgets/home_bottom_nav_bar.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/pages/add_laptop_screen.dart';
-import 'package:intl/intl.dart';
 
 class ChatListScreen extends ConsumerStatefulWidget {
   const ChatListScreen({super.key});
@@ -24,16 +25,25 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   @override
   void initState() {
     super.initState();
-    // Load conversations when the screen opens
-    Future.microtask(() {
-      ref.read(chatViewModelProvider.notifier).getConversations();
+
+    Future.microtask(() async {
+      // 1. Set currentUserId and refresh socket BEFORE loading conversations
+      final sessionService = ref.read(userSessionServiceProvider);
+      final userId = sessionService.getCurrentUserId();
+      if (userId != null && userId.isNotEmpty) {
+        await ref.read(chatViewModelProvider.notifier).setCurrentUserId(userId);
+      }
+
+      // 2. Load conversations (socket is fresh if user switched)
+      await ref.read(chatViewModelProvider.notifier).getConversations();
     });
   }
 
   String _formatTime(DateTime? dateTime) {
     if (dateTime == null) return '';
+    final local = dateTime.toLocal();
     final now = DateTime.now();
-    final diff = now.difference(dateTime);
+    final diff = now.difference(local);
 
     if (diff.inMinutes < 60) {
       return '${diff.inMinutes}m ago';
@@ -267,8 +277,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
         final chat = conversations[index];
         final unread = _unreadForCurrentUser(chat, chatState.currentUserId);
         final isBuyer = _isCurrentUserBuyer(chat, chatState.currentUserId);
-        final otherName = chat.otherParticipantName ?? 'Unknown';
-        final otherImage = chat.otherParticipantImage;
+        final otherName = chat.resolveOtherName(chatState.currentUserId) ?? 'Unknown';
+        final otherImage = chat.resolveOtherImage(chatState.currentUserId);
 
         return ChatListTile(
           name: otherName,
