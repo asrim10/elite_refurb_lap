@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:EliteReurbLap/app/theme/app_color.dart';
 import 'package:EliteReurbLap/core/api/api_endpoints.dart';
+import 'package:EliteReurbLap/features/chat/presentation/widgets/highlighted_text.dart';
 
 class ChatListTile extends StatelessWidget {
   final String name;
@@ -11,6 +12,10 @@ class ChatListTile extends StatelessWidget {
   final String? imageUrl;
   final VoidCallback onTap;
 
+  /// An optional search term whose occurrences in [name] and [lastMessage]
+  /// will be highlighted with a warm background.
+  final String? searchQuery;
+
   const ChatListTile({
     super.key,
     required this.name,
@@ -20,6 +25,7 @@ class ChatListTile extends StatelessWidget {
     this.isOnline = false,
     this.imageUrl,
     required this.onTap,
+    this.searchQuery,
   });
 
   String _getInitials(String fullName) {
@@ -101,8 +107,9 @@ class ChatListTile extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          name,
+                        HighlightedText(
+                          text: name,
+                          query: searchQuery ?? '',
                           style: TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 15,
@@ -129,8 +136,9 @@ class ChatListTile extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            lastMessage,
+                          child: HighlightedText(
+                            text: lastMessage,
+                            query: searchQuery ?? '',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(

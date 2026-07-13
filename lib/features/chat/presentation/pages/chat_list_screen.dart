@@ -21,6 +21,8 @@ class ChatListScreen extends ConsumerStatefulWidget {
 
 class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   int _selectedFilter = 0;
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -37,6 +39,12 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
       // 2. Load conversations (socket is fresh if user switched)
       await ref.read(chatViewModelProvider.notifier).getConversations();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   String _formatTime(DateTime? dateTime) {
@@ -173,18 +181,40 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
             borderRadius: BorderRadius.circular(9999),
           ),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Icons.search, size: 18, color: AppColors.textHint),
-            SizedBox(width: 10),
-            Text(
-              'Search conversations...',
-              style: TextStyle(
-                color: AppColors.textHint,
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
+            const Icon(Icons.search, size: 18, color: AppColors.textHint),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                onChanged: (value) => setState(() => _searchQuery = value),
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                ),
+                decoration: const InputDecoration(
+                  hintText: 'Search conversations...',
+                  hintStyle: TextStyle(
+                    color: AppColors.textHint,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                  ),
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
               ),
             ),
+            if (_searchQuery.isNotEmpty)
+              GestureDetector(
+                onTap: () {
+                  _searchController.clear();
+                  setState(() => _searchQuery = '');
+                },
+                child: const Icon(Icons.close, size: 18, color: AppColors.textHint),
+              ),
           ],
         ),
       ),
@@ -221,7 +251,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
       );
     }
 
-    final conversations = _filteredConversations(chatState);
+    final conversations = _applySearch(_filteredConversations(chatState), chatState.currentUserId);
 
     if (conversations.isEmpty) {
       return Center(
@@ -287,6 +317,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
           unreadCount: unread,
           isOnline: false,
           imageUrl: otherImage,
+          searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -308,7 +339,24 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
     );
   }
 
+  List<ChatEntity> _applySearch(List<ChatEntity> conversations, String currentUserId) {
+    if (_searchQuery.isEmpty) return conversations;
+    final query = _searchQuery.toLowerCase().trim();
+    return conversations.where((chat) {
+      final otherName = chat
+          .resolveOtherName(currentUserId)
+          ?.toLowerCase()
+          .contains(query) ?? false;
+      final lastMsg = chat.lastMessage?.toLowerCase().contains(query) ?? false;
+      final laptopTitle = chat.laptopTitle?.toLowerCase().contains(query) ?? false;
+      return otherName || lastMsg || laptopTitle;
+    }).toList();
+  }
+
   String _emptyStateMessage() {
+    if (_searchQuery.isNotEmpty) {
+      return 'No conversations match "$_searchQuery".\nTry a different search term.';
+    }
     switch (_selectedFilter) {
       case 1:
         return 'No unread messages.';
