@@ -11,6 +11,7 @@ import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_chat_b
 import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_listings_section.dart';
 import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_location_section.dart';
 import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_profile_header.dart';
+import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_rating_sheet.dart';
 import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_stats_row.dart';
 
 class SellerProfileScreen extends ConsumerStatefulWidget {
@@ -180,6 +181,42 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
     );
   }
 
+  Future<void> _onRateSeller(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final sessionService = ref.read(userSessionServiceProvider);
+    final currentUserId = sessionService.getCurrentUserId();
+
+    // Prevent self-rating
+    if (widget.sellerId == currentUserId) {
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('You cannot rate yourself'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final result = await showSellerRatingSheet(
+      context,
+      sellerId: widget.sellerId,
+      sellerName: widget.sellerName,
+    );
+
+    if (result == true && mounted) {
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Thank you for your feedback!'),
+          backgroundColor: Color(0xFF2D6A3F),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   void _onListingTap(LaptopEntity laptop) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -207,6 +244,7 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
                     SellerProfileHeader(
                       sellerName: widget.sellerName,
                       sellerImageUrl: widget.sellerImageUrl,
+                      onRateSeller: () => _onRateSeller(context),
                     ),
                     const SizedBox(height: 24),
                     const SellerStatsRow(),

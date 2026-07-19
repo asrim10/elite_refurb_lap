@@ -4,11 +4,13 @@ import 'package:EliteReurbLap/core/api/api_endpoints.dart';
 class SellerProfileHeader extends StatelessWidget {
   final String sellerName;
   final String? sellerImageUrl;
+  final VoidCallback? onRateSeller;
 
   const SellerProfileHeader({
     super.key,
     required this.sellerName,
     this.sellerImageUrl,
+    this.onRateSeller,
   });
 
   @override
@@ -153,6 +155,32 @@ class SellerProfileHeader extends StatelessWidget {
               ),
             ],
           ),
+          if (onRateSeller != null) ...[  
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 32,
+              child: TextButton.icon(
+                onPressed: onRateSeller,
+                icon: const Icon(Icons.star_outline, size: 16, color: Color(0xFF705A4E)),
+                label: const Text(
+                  'Rate Seller',
+                  style: TextStyle(
+                    color: Color(0xFF705A4E),
+                    fontSize: 13,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: const BorderSide(color: Color(0x4CCDC4CA)),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
