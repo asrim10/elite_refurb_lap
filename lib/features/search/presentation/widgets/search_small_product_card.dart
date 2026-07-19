@@ -1,4 +1,6 @@
 import 'package:EliteReurbLap/app/theme/app_color.dart';
+import 'package:EliteReurbLap/core/api/api_endpoints.dart';
+import 'package:EliteReurbLap/features/laptop/domain/entities/laptop_entity.dart';
 import 'package:flutter/material.dart';
 
 class SearchSmallProductCard extends StatelessWidget {
@@ -14,6 +16,23 @@ class SearchSmallProductCard extends StatelessWidget {
     required this.specs,
     this.onTap,
   });
+
+  factory SearchSmallProductCard.fromLaptop(
+    LaptopEntity laptop, {
+    VoidCallback? onTap,
+  }) {
+    final specs = '${laptop.processor} • ${laptop.ram}GB RAM';
+    final imageUrl = laptop.images.isNotEmpty
+        ? ApiEndpoints.getImageUrl(laptop.images.first)
+        : '';
+
+    return SearchSmallProductCard(
+      imageUrl: imageUrl,
+      title: laptop.title,
+      specs: specs,
+      onTap: onTap,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,28 +68,36 @@ class SearchSmallProductCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: Image.network(
-                imageUrl,
-                fit: BoxFit.fill,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return const Center(
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.accent,
+              child: imageUrl.isNotEmpty
+                  ? Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.accent,
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Center(
+                          child: Icon(
+                            Icons.laptop_mac,
+                            size: 32,
+                            color: AppColors.textDisabled,
+                          ),
+                        );
+                      },
+                    )
+                  : const Center(
+                      child: Icon(
+                        Icons.laptop_mac,
+                        size: 32,
+                        color: AppColors.textDisabled,
+                      ),
                     ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return const Center(
-                    child: Icon(
-                      Icons.laptop_mac,
-                      size: 32,
-                      color: AppColors.textDisabled,
-                    ),
-                  );
-                },
-              ),
             ),
             const SizedBox(height: 8),
             // Title

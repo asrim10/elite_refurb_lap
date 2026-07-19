@@ -1,5 +1,8 @@
 import 'package:EliteReurbLap/app/theme/app_color.dart';
+import 'package:EliteReurbLap/core/api/api_endpoints.dart';
+import 'package:EliteReurbLap/features/laptop/domain/entities/laptop_entity.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class SearchFeaturedProductCard extends StatelessWidget {
   final String imageUrl;
@@ -8,6 +11,7 @@ class SearchFeaturedProductCard extends StatelessWidget {
   final String price;
   final VoidCallback? onTap;
   final VoidCallback? onWishlistTap;
+  final bool isFavorite;
 
   const SearchFeaturedProductCard({
     super.key,
@@ -17,7 +21,34 @@ class SearchFeaturedProductCard extends StatelessWidget {
     required this.price,
     this.onTap,
     this.onWishlistTap,
+    this.isFavorite = false,
   });
+
+  factory SearchFeaturedProductCard.fromLaptop(
+    LaptopEntity laptop, {
+    VoidCallback? onTap,
+    VoidCallback? onWishlistTap,
+    bool isFavorite = false,
+  }) {
+    final storageStr = laptop.storage >= 1000
+        ? '${(laptop.storage / 1000).toStringAsFixed(0)}TB'
+        : '${laptop.storage}GB';
+    final specs = '${laptop.processor}, ${laptop.ram}GB RAM, $storageStr ${laptop.storageType}';
+    final format = NumberFormat.currency(symbol: 'Rs. ', decimalDigits: 0);
+    final imageUrl = laptop.images.isNotEmpty
+        ? ApiEndpoints.getImageUrl(laptop.images.first)
+        : '';
+
+    return SearchFeaturedProductCard(
+      imageUrl: imageUrl,
+      title: laptop.title,
+      specs: specs,
+      price: format.format(laptop.price),
+      onTap: onTap,
+      onWishlistTap: onWishlistTap,
+      isFavorite: isFavorite,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,28 +85,36 @@ class SearchFeaturedProductCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: Image.network(
-                imageUrl,
-                fit: BoxFit.fill,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return const Center(
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.accent,
+              child: imageUrl.isNotEmpty
+                  ? Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.accent,
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Center(
+                          child: Icon(
+                            Icons.laptop_mac,
+                            size: 48,
+                            color: AppColors.textDisabled,
+                          ),
+                        );
+                      },
+                    )
+                  : const Center(
+                      child: Icon(
+                        Icons.laptop_mac,
+                        size: 48,
+                        color: AppColors.textDisabled,
+                      ),
                     ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return const Center(
-                    child: Icon(
-                      Icons.laptop_mac,
-                      size: 48,
-                      color: AppColors.textDisabled,
-                    ),
-                  );
-                },
-              ),
             ),
             const SizedBox(height: 12),
             // Title + Verified badge row
@@ -181,10 +220,12 @@ class SearchFeaturedProductCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(9999),
           ),
         ),
-        child: const Icon(
-          Icons.favorite_border,
+        child: Icon(
+          isFavorite ? Icons.favorite : Icons.favorite_border,
           size: 18,
-          color: Color(0xFF6B7280),
+          color: isFavorite
+              ? const Color(0xFFD32F2F)
+              : const Color(0xFF6B7280),
         ),
       ),
     );
