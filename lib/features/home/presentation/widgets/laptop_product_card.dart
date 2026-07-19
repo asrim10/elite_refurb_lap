@@ -6,8 +6,16 @@ import 'package:intl/intl.dart';
 class LaptopProductCard extends StatelessWidget {
   final LaptopEntity product;
   final VoidCallback? onTap;
+  final VoidCallback? onFavorite;
+  final bool isFavorite;
 
-  const LaptopProductCard({super.key, required this.product, this.onTap});
+  const LaptopProductCard({
+    super.key,
+    required this.product,
+    this.onTap,
+    this.onFavorite,
+    this.isFavorite = false,
+  });
 
   String get _formattedSpecs {
     final storageStr = product.storage >= 1000
@@ -129,25 +137,30 @@ class LaptopProductCard extends StatelessWidget {
                   Positioned(
                     top: 12,
                     right: 12,
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: ShapeDecoration(
-                        color: Colors.white.withValues(alpha: 0.80),
-                        shape: const CircleBorder(),
-                        shadows: const [
-                          BoxShadow(
-                            color: Color(0x0C000000),
-                            blurRadius: 2,
-                            offset: Offset(0, 1),
-                            spreadRadius: 0,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.favorite_border,
-                        size: 18,
-                        color: Color(0xFF6B5A50),
+                    child: GestureDetector(
+                      onTap: onFavorite,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: ShapeDecoration(
+                          color: Colors.white.withValues(alpha: 0.80),
+                          shape: const CircleBorder(),
+                          shadows: const [
+                            BoxShadow(
+                              color: Color(0x0C000000),
+                              blurRadius: 2,
+                              offset: Offset(0, 1),
+                              spreadRadius: 0,
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                          size: 18,
+                          color: isFavorite
+                              ? const Color(0xFFD32F2F)
+                              : const Color(0xFF6B5A50),
+                        ),
                       ),
                     ),
                   ),

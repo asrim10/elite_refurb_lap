@@ -74,4 +74,16 @@ class ApiEndpoints {
   static const String chats = '/chats';
   static const String chatById = '/chats/'; // append /:id
   static const String chatByLaptop = '/chats/laptop/'; // append /:laptopId
+
+  // Wishlist Endpoints
+  static const String wishlist = '/wishlists';
+  static const String wishlistPublic = '/wishlists/public';
+  static const String wishlistPublicByUser =
+      '/wishlists/public/'; // append /:userId
+  static const String wishlistMy = '/wishlists/my-wishlist';
+  static const String wishlistAddLaptop = '/wishlists/add-laptop';
+  static const String wishlistRemoveLaptop = '/wishlists/remove-laptop';
+  static const String wishlistClear = '/wishlists/clear';
+  static const String wishlistCheckLaptop =
+      '/wishlists/check/'; // append /:laptopId
 }

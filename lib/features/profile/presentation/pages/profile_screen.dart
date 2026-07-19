@@ -7,6 +7,7 @@ import 'package:EliteReurbLap/features/auth/presentation/state/auth_state.dart';
 import 'package:EliteReurbLap/features/auth/presentation/view_model/auth_viewmodel.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/pages/my_listings_screen.dart';
 import 'package:EliteReurbLap/features/profile/presentation/pages/edit_profile_screen.dart';
+import 'package:EliteReurbLap/features/wishlist/presentation/pages/wishlist_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -280,7 +281,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             icon: Icons.favorite_outline,
             title: 'Wishlist',
             subtitle: 'Saved laptops & accessories',
-            onTap: () {},
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const WishlistScreen()),
+            ),
           ),
         ],
       ),

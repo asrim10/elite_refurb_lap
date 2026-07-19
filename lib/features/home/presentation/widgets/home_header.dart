@@ -1,4 +1,6 @@
 import 'package:EliteReurbLap/features/auth/presentation/view_model/auth_viewmodel.dart';
+import 'package:EliteReurbLap/features/wishlist/presentation/pages/wishlist_screen.dart';
+import 'package:EliteReurbLap/features/wishlist/presentation/view_model/wishlist_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,10 +21,12 @@ class HomeHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authViewModelProvider);
+    final wishlistState = ref.watch(wishlistViewModelProvider);
     final user = authState.authEntity;
     final displayName = user?.fullName ?? 'Guest';
     final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : '?';
     final greeting = _greeting();
+    final wishlistCount = wishlistState.laptopIds.length;
 
     return Container(
       width: double.infinity,
@@ -80,35 +84,84 @@ class HomeHeader extends ConsumerWidget {
               ),
             ],
           ),
-          // Notification Bell
-          Stack(
+          // Icons
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            spacing: 16,
             children: [
-              const Icon(
-                Icons.notifications_outlined,
-                size: 24,
-                color: Color(0xFF1A1C1C),
+              // Wishlist heart
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const WishlistScreen(),
+                    ),
+                  );
+                },
+                child: Stack(
+                  children: [
+                    const Icon(
+                      Icons.favorite_outline,
+                      size: 24,
+                      color: Color(0xFF1A1C1C),
+                    ),
+                    if (wishlistCount > 0)
+                      Positioned(
+                        right: -4,
+                        top: -4,
+                        child: Container(
+                          width: 16,
+                          height: 16,
+                          decoration: const ShapeDecoration(
+                            color: Color(0xFFD32F2F),
+                            shape: CircleBorder(),
+                          ),
+                          child: Center(
+                            child: Text(
+                              wishlistCount > 9 ? '9+' : '$wishlistCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-              Positioned(
-                right: -3,
-                top: -4,
-                child: Container(
-                  width: 16,
-                  height: 16,
-                  decoration: const ShapeDecoration(
-                    color: Colors.black,
-                    shape: CircleBorder(),
+              // Notification Bell
+              Stack(
+                children: [
+                  const Icon(
+                    Icons.notifications_outlined,
+                    size: 24,
+                    color: Color(0xFF1A1C1C),
                   ),
-                  child: const Center(
-                    child: Text(
-                      '3',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
+                  Positioned(
+                    right: -3,
+                    top: -4,
+                    child: Container(
+                      width: 16,
+                      height: 16,
+                      decoration: const ShapeDecoration(
+                        color: Colors.black,
+                        shape: CircleBorder(),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          '3',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
