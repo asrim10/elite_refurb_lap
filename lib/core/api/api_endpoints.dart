@@ -86,4 +86,9 @@ class ApiEndpoints {
   static const String wishlistClear = '/wishlists/clear';
   static const String wishlistCheckLaptop =
       '/wishlists/check/'; // append /:laptopId
+
+  // Rating Endpoints
+  static const String ratings = '/ratings';
+  static const String ratingById = '/ratings/'; // append /:id
+  static const String ratingBySeller = '/ratings/seller/'; // append /:sellerId
 }
