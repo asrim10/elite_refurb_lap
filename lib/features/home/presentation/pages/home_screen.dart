@@ -5,6 +5,7 @@ import 'package:EliteReurbLap/features/laptop/domain/entities/laptop_entity.dart
 import 'package:EliteReurbLap/features/laptop/presentation/pages/laptop_details_screen.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/state/laptop_state.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/view_model/laptop_viewmodel.dart';
+import 'package:EliteReurbLap/features/notification/presentation/view_model/notification_viewmodel.dart';
 import 'package:EliteReurbLap/features/wishlist/presentation/state/wishlist_state.dart';
 import 'package:EliteReurbLap/features/wishlist/presentation/view_model/wishlist_viewmodel.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +28,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(laptopViewModelProvider.notifier).getAllLaptops();
       ref.read(wishlistViewModelProvider.notifier).getMyWishlist();
+      ref.read(notificationViewModelProvider.notifier).getNotifications();
     });
   }
 
