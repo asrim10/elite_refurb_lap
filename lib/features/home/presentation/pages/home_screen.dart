@@ -7,8 +7,11 @@ import 'package:EliteReurbLap/features/laptop/presentation/pages/add_laptop_scre
 import 'package:EliteReurbLap/features/laptop/presentation/pages/laptop_details_screen.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/state/laptop_state.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/view_model/laptop_viewmodel.dart';
+import 'package:EliteReurbLap/features/chat/presentation/pages/chat_list_screen.dart';
 import 'package:EliteReurbLap/features/profile/presentation/pages/profile_screen.dart';
 import 'package:EliteReurbLap/features/search/presentation/pages/search_screen.dart';
+import 'package:EliteReurbLap/features/wishlist/presentation/state/wishlist_state.dart';
+import 'package:EliteReurbLap/features/wishlist/presentation/view_model/wishlist_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -26,15 +29,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Fetch laptops when the screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(laptopViewModelProvider.notifier).getAllLaptops();
+      ref.read(wishlistViewModelProvider.notifier).getMyWishlist();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final laptopState = ref.watch(laptopViewModelProvider);
+    final wishlistState = ref.watch(wishlistViewModelProvider);
+    final wishlistIds = wishlistState.laptopIds;
+
+    ref.listen<WishlistState>(wishlistViewModelProvider, (prev, next) {
+      if (prev?.status == next.status) return;
+      if (next.status == WishlistStatus.laptopAdded) {
+        _showSnackBar('Added to wishlist');
+      } else if (next.status == WishlistStatus.laptopRemoved) {
+        _showSnackBar('Removed from wishlist');
+      } else if (next.status == WishlistStatus.error && next.errorMessage != null) {
+        _showSnackBar(next.errorMessage!);
+      }
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F0EC),
@@ -58,7 +74,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   setState(() => _selectedCategory = index),
             ),
             const SizedBox(height: 8),
-            Expanded(child: _buildProductList(laptopState)),
+            Expanded(child: _buildProductList(laptopState, wishlistIds)),
           ],
         ),
       ),
@@ -77,6 +93,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 builder: (_) => const AddLaptopScreen(),
               ),
             );
+          } else if (index == 3) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const ChatListScreen(),
+              ),
+            );
           } else if (index == 4) {
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -91,7 +113,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildProductList(LaptopState laptopState) {
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Widget _buildProductList(LaptopState laptopState, List<String> wishlistIds) {
     switch (laptopState.status) {
       case LaptopStatus.initial:
       case LaptopStatus.loading:
@@ -179,14 +213,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           separatorBuilder: (_, __) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             final laptop = laptops[index];
+            final isFavorite =
+                laptop.id != null && wishlistIds.contains(laptop.id);
             return LaptopProductCard(
               product: laptop,
+              isFavorite: isFavorite,
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => LaptopDetailsScreen(laptop: laptop),
                   ),
                 );
+              },
+              onFavorite: () {
+                if (laptop.id != null) {
+                  if (isFavorite) {
+                    ref
+                        .read(wishlistViewModelProvider.notifier)
+                        .removeLaptop(laptop.id!);
+                  } else {
+                    ref
+                        .read(wishlistViewModelProvider.notifier)
+                        .addLaptop(laptop.id!);
+                  }
+                }
               },
             );
           },

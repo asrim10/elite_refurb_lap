@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:EliteReurbLap/features/chat/presentation/pages/chat_detail_screen.dart';
+import 'package:EliteReurbLap/features/chat/presentation/view_model/chat_viewmodel.dart';
 import 'package:EliteReurbLap/features/laptop/domain/entities/laptop_entity.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/state/laptop_state.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/view_model/laptop_viewmodel.dart';
@@ -8,9 +10,14 @@ import 'package:EliteReurbLap/features/laptop/presentation/widgets/laptop_title_
 import 'package:EliteReurbLap/features/laptop/presentation/widgets/laptop_specs_table.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/widgets/laptop_description_section.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/widgets/laptop_seller_card.dart';
+import 'package:EliteReurbLap/features/rating/presentation/pages/seller_profile_screen.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/widgets/laptop_tags_section.dart';
 import 'package:EliteReurbLap/core/services/storage/user_session_service.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/widgets/laptop_details_bottom_bar.dart';
+import 'package:EliteReurbLap/features/rating/presentation/state/rating_state.dart';
+import 'package:EliteReurbLap/features/rating/presentation/view_model/rating_viewmodel.dart';
+import 'package:EliteReurbLap/features/wishlist/presentation/state/wishlist_state.dart';
+import 'package:EliteReurbLap/features/wishlist/presentation/view_model/wishlist_viewmodel.dart';
 
 class LaptopDetailsScreen extends ConsumerStatefulWidget {
   final String? laptopId;
@@ -32,19 +39,49 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.laptopId != null && widget.laptop == null) {
-      Future.microtask(() {
+    Future.microtask(() {
+      if (widget.laptopId != null && widget.laptop == null) {
         ref
             .read(laptopViewModelProvider.notifier)
             .getLaptopById(widget.laptopId!);
-      });
-    }
+      }
+      // Fetch seller ratings if we already have the laptop
+      final laptop = widget.laptop;
+      if (laptop?.sellerId != null) {
+        ref
+            .read(ratingViewModelProvider.notifier)
+            .getSellerRatings(laptop!.sellerId!);
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final laptopState = ref.watch(laptopViewModelProvider);
+    final wishlistState = ref.watch(wishlistViewModelProvider);
+    final ratingState = ref.watch(ratingViewModelProvider);
     final laptop = widget.laptop ?? laptopState.selectedLaptop;
+    final isInWishlist =
+        laptop?.id != null && wishlistState.laptopIds.contains(laptop!.id);
+
+    // Fetch seller ratings if laptop is loaded and we haven't fetched yet
+    final sellerId = laptop?.sellerId;
+    if (sellerId != null && ratingState.status == RatingStatus.initial) {
+      Future.microtask(
+        () => ref.read(ratingViewModelProvider.notifier).getSellerRatings(sellerId),
+      );
+    }
+
+    ref.listen<WishlistState>(wishlistViewModelProvider, (prev, next) {
+      if (prev?.status == next.status) return;
+      if (next.status == WishlistStatus.laptopAdded) {
+        _showSnackBar('Added to wishlist');
+      } else if (next.status == WishlistStatus.laptopRemoved) {
+        _showSnackBar('Removed from wishlist');
+      } else if (next.status == WishlistStatus.error && next.errorMessage != null) {
+        _showSnackBar(next.errorMessage!);
+      }
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F0EC),
@@ -53,9 +90,9 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
           : SafeArea(
               child: Column(
                 children: [
-                  _buildAppBar(laptop),
+                  _buildAppBar(laptop, isInWishlist),
                   _buildImageSection(laptop),
-                  Expanded(child: _buildScrollContent(laptop)),
+                  Expanded(child: _buildScrollContent(laptop, ratingState)),
                   LaptopDetailsBottomBar(
                     onCallSeller: () {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -66,19 +103,24 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
                         ),
                       );
                     },
-                    onChatNow: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Chat - Coming soon'),
-                          backgroundColor: Color(0xFF2D6A3F),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
+                    onChatNow: () => _onChatNow(laptop),
                   ),
                 ],
               ),
             ),
+    );
+  }
+
+  void _showSnackBar(String message, {Color? backgroundColor}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
     );
   }
 
@@ -116,7 +158,7 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
     );
   }
 
-  Widget _buildAppBar(LaptopEntity laptop) {
+  Widget _buildAppBar(LaptopEntity laptop, bool isInWishlist) {
     return Container(
       width: double.infinity,
       height: 52,
@@ -150,7 +192,22 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
             spacing: 16,
             children: [
               const Icon(Icons.share_outlined, size: 24, color: Colors.black),
-              const Icon(Icons.favorite_outline, size: 24, color: Colors.black),
+              GestureDetector(
+                onTap: () {
+                  if (laptop.id != null) {
+                    ref
+                        .read(wishlistViewModelProvider.notifier)
+                        .toggleLaptopInWishlist(laptop.id!);
+                  }
+                },
+                child: Icon(
+                  isInWishlist ? Icons.favorite : Icons.favorite_outline,
+                  size: 24,
+                  color: isInWishlist
+                      ? const Color(0xFFD32F2F)
+                      : Colors.black,
+                ),
+              ),
             ],
           ),
         ],
@@ -179,6 +236,85 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
     return null;
   }
 
+  Future<void> _onChatNow(LaptopEntity laptop) async {
+    // Don't allow chatting with yourself
+    final sessionService = ref.read(userSessionServiceProvider);
+    final currentUserId = sessionService.getCurrentUserId();
+    if (laptop.sellerId != null && laptop.sellerId == currentUserId) {
+      _showSnackBar('You cannot chat with yourself', backgroundColor: Colors.red);
+      return;
+    }
+
+    final sellerName = _resolveSellerName(laptop) ?? 'the seller';
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.chat_outlined, size: 22, color: Color(0xFF705A4E)),
+            const SizedBox(width: 10),
+            const Text(
+              'Start Chat',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+        content: Text(
+          'Start a conversation with $sellerName about\n'
+          '${laptop.title}?',
+          style: const TextStyle(fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Yes, Chat Now',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF2D6A3F),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    // Get or create conversation and navigate
+    await ref.read(chatViewModelProvider.notifier).getOrCreateConversationByLaptop(
+      laptopId: laptop.id!,
+      sellerId: laptop.sellerId!,
+      initialMessage: 'Hi, is this available?',
+    );
+
+    final chatState = ref.read(chatViewModelProvider);
+    final convo = chatState.selectedConversation;
+
+    if (!mounted) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChatDetailScreen(
+          conversationId: convo?.id ?? '',
+          otherParticipantName: sellerName,
+          otherParticipantImage: _resolveSellerImage(laptop),
+          isBuyer: true,
+          laptopTitle: laptop.title,
+          laptopPrice: 'NPR ${laptop.price.toStringAsFixed(0)}',
+          laptopImage: laptop.images.isNotEmpty ? laptop.images.first : null,
+        ),
+      ),
+    );
+  }
+
   /// Resolves the seller profile image for the seller card.
   /// Priority:
   /// 1. Session profile picture (if seller is the current user)
@@ -202,11 +338,33 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
     return null;
   }
 
+  Future<void> _onTapSellerProfile(LaptopEntity laptop) async {
+    final ratingSubmitted = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => SellerProfileScreen(
+          sellerId: laptop.sellerId!,
+          sellerName: _resolveSellerName(laptop) ?? laptop.sellerName ?? 'Seller',
+          sellerImageUrl: _resolveSellerImage(laptop),
+          location: laptop.location,
+        ),
+      ),
+    );
+
+    if (ratingSubmitted == true && mounted) {
+      // Refresh ratings and show confirmation
+      ref.read(ratingViewModelProvider.notifier).getSellerRatings(laptop.sellerId!);
+      _showSnackBar(
+        'Thank you for your feedback!',
+        backgroundColor: const Color(0xFF2D6A3F),
+      );
+    }
+  }
+
   Widget _buildImageSection(LaptopEntity laptop) {
     return LaptopImageGallery(images: laptop.images);
   }
 
-  Widget _buildScrollContent(LaptopEntity laptop) {
+  Widget _buildScrollContent(LaptopEntity laptop, RatingState ratingState) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -225,6 +383,11 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
               laptop: laptop,
               sellerNameOverride: _resolveSellerName(laptop),
               sellerImageUrl: _resolveSellerImage(laptop),
+              averageRating: ratingState.sellerStats?.averageRating ?? 0.0,
+              totalRatings: ratingState.sellerStats?.totalRatings ?? 0,
+              onTapSeller: laptop.sellerId != null
+                  ? () => _onTapSellerProfile(laptop)
+                  : null,
             ),
           if (laptop.sellerName != null || laptop.sellerId != null)
             const SizedBox(height: 16),
