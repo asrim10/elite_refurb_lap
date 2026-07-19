@@ -47,8 +47,10 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
   void initState() {
     super.initState();
     _fetchListings();
-    // Fetch real-time ratings
-    ref.read(ratingViewModelProvider.notifier).getSellerRatings(widget.sellerId);
+    // Fetch real-time ratings after the widget tree is done building
+    Future.microtask(
+      () => ref.read(ratingViewModelProvider.notifier).getSellerRatings(widget.sellerId),
+    );
   }
 
   Future<void> _fetchListings() async {
