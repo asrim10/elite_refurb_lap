@@ -7,11 +7,11 @@ class ApiEndpoints {
 
   static const bool isPhysicalDevice = false;
 
-  static const String compIpAddress = "192.168.1.66";
+  static const String compIpAddress = "192.168.1.68";
 
   static String get baseUrl {
     if (isPhysicalDevice) {
-      return 'http://$compIpAddress:3000/api/v1';
+      return 'http://$compIpAddress:5050/api';
     }
     // if android
     if (kIsWeb) {
@@ -69,6 +69,11 @@ class ApiEndpoints {
   static const String laptopMyListings = '/laptops/seller/my-listings';
   static const String laptopById = '/laptops/'; // append /:id
   static const String laptopBySeller = '/laptops/seller/'; // append /:sellerId
+
+  // Chat Endpoints
+  static const String chats = '/chats';
+  static const String chatById = '/chats/'; // append /:id
+  static const String chatByLaptop = '/chats/laptop/'; // append /:laptopId
 
   // Wishlist Endpoints
   static const String wishlist = '/wishlists';
