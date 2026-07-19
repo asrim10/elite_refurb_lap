@@ -1,8 +1,8 @@
-import 'package:EliteReurbLap/features/home/presentation/widgets/category_chips.dart';
 import 'package:EliteReurbLap/features/home/presentation/widgets/home_bottom_nav_bar.dart';
 import 'package:EliteReurbLap/features/home/presentation/widgets/home_header.dart';
 import 'package:EliteReurbLap/features/home/presentation/widgets/home_search_bar.dart';
 import 'package:EliteReurbLap/features/home/presentation/widgets/laptop_product_card.dart';
+import 'package:EliteReurbLap/features/laptop/domain/entities/laptop_entity.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/pages/add_laptop_screen.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/pages/laptop_details_screen.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/state/laptop_state.dart';
@@ -23,8 +23,9 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  int _selectedCategory = 0;
   int _selectedBottomNav = 0;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -33,6 +34,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ref.read(laptopViewModelProvider.notifier).getAllLaptops();
       ref.read(wishlistViewModelProvider.notifier).getMyWishlist();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  /// Filters laptops locally based on the search query.
+  List<LaptopEntity> _getFilteredLaptops(List<LaptopEntity> laptops) {
+    if (_searchQuery.isEmpty) return laptops;
+    final query = _searchQuery.toLowerCase();
+    return laptops.where((laptop) {
+      return laptop.title.toLowerCase().contains(query) ||
+          laptop.brand.toLowerCase().contains(query) ||
+          laptop.processor.toLowerCase().contains(query) ||
+          laptop.modelName.toLowerCase().contains(query);
+    }).toList();
   }
 
   @override
@@ -59,21 +78,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             const HomeHeader(),
             HomeSearchBar(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const SearchScreen(),
-                  ),
-                );
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() => _searchQuery = value);
               },
             ),
-            const SizedBox(height: 8),
-            CategoryChips(
-              selectedIndex: _selectedCategory,
-              onCategoryChanged: (index) =>
-                  setState(() => _selectedCategory = index),
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+            // Result count when search is active
+            if (_searchQuery.isNotEmpty && (laptopState.status == LaptopStatus.loaded ||
+                laptopState.status == LaptopStatus.created ||
+                laptopState.status == LaptopStatus.updated ||
+                laptopState.status == LaptopStatus.deleted))
+              Padding(
+                padding: const EdgeInsets.only(left: 20, right: 20, bottom: 8),
+                child: Row(
+                  children: [
+                    Text(
+                      '${_getFilteredLaptops(laptopState.laptops).length} result${_getFilteredLaptops(laptopState.laptops).length == 1 ? '' : 's'}',
+                      style: const TextStyle(
+                        color: Color(0xFF6B7280),
+                        fontSize: 13,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Expanded(child: _buildProductList(laptopState, wishlistIds)),
           ],
         ),
@@ -174,8 +205,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       case LaptopStatus.created:
       case LaptopStatus.updated:
       case LaptopStatus.deleted:
-        final laptops = laptopState.laptops;
+        final laptops = _getFilteredLaptops(laptopState.laptops);
         if (laptops.isEmpty) {
+          if (_searchQuery.isNotEmpty) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.search_off,
+                    size: 64,
+                    color: Color(0xFFC4B0A4),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No laptops found for "$_searchQuery"',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFF9A8174),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Try a different search term',
+                    style: TextStyle(
+                      color: Color(0xFFC4B0A4),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
           return const Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
