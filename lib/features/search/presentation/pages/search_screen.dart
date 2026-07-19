@@ -1,12 +1,9 @@
 import 'package:EliteReurbLap/app/theme/app_color.dart';
 import 'package:EliteReurbLap/core/api/api_endpoints.dart';
-import 'package:EliteReurbLap/features/home/presentation/widgets/home_bottom_nav_bar.dart';
 import 'package:EliteReurbLap/features/laptop/domain/entities/laptop_entity.dart';
-import 'package:EliteReurbLap/features/laptop/presentation/pages/add_laptop_screen.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/pages/laptop_details_screen.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/state/laptop_state.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/view_model/laptop_viewmodel.dart';
-import 'package:EliteReurbLap/features/profile/presentation/pages/profile_screen.dart';
 import 'package:EliteReurbLap/features/search/domain/search_filter.dart';
 import 'package:EliteReurbLap/features/search/presentation/widgets/search_bar_widget.dart';
 import 'package:EliteReurbLap/features/search/presentation/widgets/search_category_chips.dart';
@@ -36,7 +33,6 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   int _selectedCategory = 0;
-  int _selectedBottomNav = 1;
   SearchFilter _currentFilter = const SearchFilter();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -153,10 +149,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         backgroundColor: AppColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+
         actions: [
           PopupMenuButton<_SortOption>(
             icon: Row(
@@ -227,28 +220,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: HomeBottomNavBar(
-        selectedIndex: _selectedBottomNav,
-        onTabChanged: (index) {
-          if (index == 0) {
-            Navigator.of(context).pop();
-          } else if (index == 2) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const AddLaptopScreen(),
-              ),
-            );
-          } else if (index == 4) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const ProfileScreen(),
-              ),
-            );
-          } else {
-            setState(() => _selectedBottomNav = index);
-          }
-        },
       ),
     );
   }

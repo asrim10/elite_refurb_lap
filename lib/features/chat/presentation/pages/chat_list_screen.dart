@@ -9,8 +9,6 @@ import 'package:EliteReurbLap/features/chat/presentation/state/chat_state.dart';
 import 'package:EliteReurbLap/features/chat/presentation/view_model/chat_viewmodel.dart';
 import 'package:EliteReurbLap/features/chat/presentation/widgets/chat_filter_bar.dart';
 import 'package:EliteReurbLap/features/chat/presentation/widgets/chat_list_tile.dart';
-import 'package:EliteReurbLap/features/home/presentation/widgets/home_bottom_nav_bar.dart';
-import 'package:EliteReurbLap/features/laptop/presentation/pages/add_laptop_screen.dart';
 
 class ChatListScreen extends ConsumerStatefulWidget {
   const ChatListScreen({super.key});
@@ -110,20 +108,6 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
             Expanded(child: _buildChatList(chatState)),
           ],
         ),
-      ),
-      bottomNavigationBar: HomeBottomNavBar(
-        selectedIndex: 3,
-        onTabChanged: (index) {
-          if (index == 2) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const AddLaptopScreen(),
-              ),
-            );
-          } else if (index != 3) {
-            Navigator.of(context).pop();
-          }
-        },
       ),
     );
   }

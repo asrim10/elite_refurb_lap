@@ -1,15 +1,10 @@
-import 'package:EliteReurbLap/features/home/presentation/widgets/home_bottom_nav_bar.dart';
 import 'package:EliteReurbLap/features/home/presentation/widgets/home_header.dart';
 import 'package:EliteReurbLap/features/home/presentation/widgets/home_search_bar.dart';
 import 'package:EliteReurbLap/features/home/presentation/widgets/laptop_product_card.dart';
 import 'package:EliteReurbLap/features/laptop/domain/entities/laptop_entity.dart';
-import 'package:EliteReurbLap/features/laptop/presentation/pages/add_laptop_screen.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/pages/laptop_details_screen.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/state/laptop_state.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/view_model/laptop_viewmodel.dart';
-import 'package:EliteReurbLap/features/chat/presentation/pages/chat_list_screen.dart';
-import 'package:EliteReurbLap/features/profile/presentation/pages/profile_screen.dart';
-import 'package:EliteReurbLap/features/search/presentation/pages/search_screen.dart';
 import 'package:EliteReurbLap/features/wishlist/presentation/state/wishlist_state.dart';
 import 'package:EliteReurbLap/features/wishlist/presentation/view_model/wishlist_viewmodel.dart';
 import 'package:flutter/material.dart';
@@ -23,7 +18,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  int _selectedBottomNav = 0;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
@@ -108,38 +102,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Expanded(child: _buildProductList(laptopState, wishlistIds)),
           ],
         ),
-      ),
-      bottomNavigationBar: HomeBottomNavBar(
-        selectedIndex: _selectedBottomNav,
-        onTabChanged: (index) {
-          if (index == 1) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const SearchScreen(),
-              ),
-            );
-          } else if (index == 2) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const AddLaptopScreen(),
-              ),
-            );
-          } else if (index == 3) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const ChatListScreen(),
-              ),
-            );
-          } else if (index == 4) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const ProfileScreen(),
-              ),
-            );
-          } else {
-            setState(() => _selectedBottomNav = index);
-          }
-        },
       ),
     );
   }
