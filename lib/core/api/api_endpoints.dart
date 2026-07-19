@@ -89,5 +89,6 @@ class ApiEndpoints {
 
   // Rating Endpoints
   static const String ratings = '/ratings';
+  static const String ratingById = '/ratings/'; // append /:id
   static const String ratingBySeller = '/ratings/seller/'; // append /:sellerId
 }
