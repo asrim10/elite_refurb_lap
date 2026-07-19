@@ -122,6 +122,23 @@ class _SearchFilterSheetState extends State<SearchFilterSheet> {
     );
   }
 
+  void _clearAll() {
+    setState(() {
+      _selectedLaptopType = null;
+      _selectedProcessor = null;
+      _selectedRam = null;
+      _selectedStorage = null;
+      _priceRange = RangeValues(
+        SearchFilter.defaultMinPrice,
+        SearchFilter.defaultMaxPrice,
+      );
+      _minPriceController.text =
+          SearchFilter.defaultMinPrice.toStringAsFixed(0);
+      _maxPriceController.text =
+          SearchFilter.defaultMaxPrice.toStringAsFixed(0);
+    });
+  }
+
   Widget _buildHandleAndClose() {
     return Padding(
       padding: const EdgeInsets.only(top: 16, left: 20, right: 20, bottom: 24),
@@ -141,10 +158,48 @@ class _SearchFilterSheetState extends State<SearchFilterSheet> {
             ),
           ),
           const SizedBox(height: 16),
-          // Close button row
+          // Close + Clear All row
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // Clear All button
+              GestureDetector(
+                onTap: _clearAll,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: ShapeDecoration(
+                    color: const Color(0xFFF5F0EC),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.refresh,
+                        size: 14,
+                        color: Color(0xFF6B5A50),
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'Clear All',
+                        style: TextStyle(
+                          color: Color(0xFF6B5A50),
+                          fontSize: 12,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w500,
+                          height: 1.50,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Close button
               GestureDetector(
                 onTap: () => Navigator.of(context).pop(),
                 child: Container(

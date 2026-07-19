@@ -356,7 +356,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             }
             return true;
           }).toList()
-        : searched;
+        : sorted;
 
     if (finalResults.isEmpty) {
       return Center(
@@ -425,6 +425,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       setState(() {
                         _currentFilter = const SearchFilter();
                       });
+                      ref.read(laptopViewModelProvider.notifier)
+                          .getAllLaptops();
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
