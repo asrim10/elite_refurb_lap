@@ -10,9 +10,12 @@ import 'package:EliteReurbLap/features/laptop/presentation/widgets/laptop_title_
 import 'package:EliteReurbLap/features/laptop/presentation/widgets/laptop_specs_table.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/widgets/laptop_description_section.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/widgets/laptop_seller_card.dart';
+import 'package:EliteReurbLap/features/rating/presentation/pages/seller_profile_screen.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/widgets/laptop_tags_section.dart';
 import 'package:EliteReurbLap/core/services/storage/user_session_service.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/widgets/laptop_details_bottom_bar.dart';
+import 'package:EliteReurbLap/features/rating/presentation/state/rating_state.dart';
+import 'package:EliteReurbLap/features/rating/presentation/view_model/rating_viewmodel.dart';
 import 'package:EliteReurbLap/features/wishlist/presentation/state/wishlist_state.dart';
 import 'package:EliteReurbLap/features/wishlist/presentation/view_model/wishlist_viewmodel.dart';
 
@@ -42,6 +45,13 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
             .read(laptopViewModelProvider.notifier)
             .getLaptopById(widget.laptopId!);
       }
+      // Fetch seller ratings if we already have the laptop
+      final laptop = widget.laptop;
+      if (laptop?.sellerId != null) {
+        ref
+            .read(ratingViewModelProvider.notifier)
+            .getSellerRatings(laptop!.sellerId!);
+      }
     });
   }
 
@@ -49,9 +59,18 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
   Widget build(BuildContext context) {
     final laptopState = ref.watch(laptopViewModelProvider);
     final wishlistState = ref.watch(wishlistViewModelProvider);
+    final ratingState = ref.watch(ratingViewModelProvider);
     final laptop = widget.laptop ?? laptopState.selectedLaptop;
     final isInWishlist =
         laptop?.id != null && wishlistState.laptopIds.contains(laptop!.id);
+
+    // Fetch seller ratings if laptop is loaded and we haven't fetched yet
+    final sellerId = laptop?.sellerId;
+    if (sellerId != null && ratingState.status == RatingStatus.initial) {
+      Future.microtask(
+        () => ref.read(ratingViewModelProvider.notifier).getSellerRatings(sellerId),
+      );
+    }
 
     ref.listen<WishlistState>(wishlistViewModelProvider, (prev, next) {
       if (prev?.status == next.status) return;
@@ -73,7 +92,7 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
                 children: [
                   _buildAppBar(laptop, isInWishlist),
                   _buildImageSection(laptop),
-                  Expanded(child: _buildScrollContent(laptop)),
+                  Expanded(child: _buildScrollContent(laptop, ratingState)),
                   LaptopDetailsBottomBar(
                     onCallSeller: () {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -319,11 +338,33 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
     return null;
   }
 
+  Future<void> _onTapSellerProfile(LaptopEntity laptop) async {
+    final ratingSubmitted = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => SellerProfileScreen(
+          sellerId: laptop.sellerId!,
+          sellerName: _resolveSellerName(laptop) ?? laptop.sellerName ?? 'Seller',
+          sellerImageUrl: _resolveSellerImage(laptop),
+          location: laptop.location,
+        ),
+      ),
+    );
+
+    if (ratingSubmitted == true && mounted) {
+      // Refresh ratings and show confirmation
+      ref.read(ratingViewModelProvider.notifier).getSellerRatings(laptop.sellerId!);
+      _showSnackBar(
+        'Thank you for your feedback!',
+        backgroundColor: const Color(0xFF2D6A3F),
+      );
+    }
+  }
+
   Widget _buildImageSection(LaptopEntity laptop) {
     return LaptopImageGallery(images: laptop.images);
   }
 
-  Widget _buildScrollContent(LaptopEntity laptop) {
+  Widget _buildScrollContent(LaptopEntity laptop, RatingState ratingState) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -342,6 +383,11 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
               laptop: laptop,
               sellerNameOverride: _resolveSellerName(laptop),
               sellerImageUrl: _resolveSellerImage(laptop),
+              averageRating: ratingState.sellerStats?.averageRating ?? 0.0,
+              totalRatings: ratingState.sellerStats?.totalRatings ?? 0,
+              onTapSeller: laptop.sellerId != null
+                  ? () => _onTapSellerProfile(laptop)
+                  : null,
             ),
           if (laptop.sellerName != null || laptop.sellerId != null)
             const SizedBox(height: 16),

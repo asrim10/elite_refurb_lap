@@ -5,12 +5,16 @@ class SellerProfileHeader extends StatelessWidget {
   final String sellerName;
   final String? sellerImageUrl;
   final VoidCallback? onRateSeller;
+  final double averageRating;
+  final int totalRatings;
 
   const SellerProfileHeader({
     super.key,
     required this.sellerName,
     this.sellerImageUrl,
     this.onRateSeller,
+    this.averageRating = 0.0,
+    this.totalRatings = 0,
   });
 
   @override
@@ -117,7 +121,7 @@ class SellerProfileHeader extends StatelessWidget {
                     const Icon(Icons.star, size: 14, color: Color(0xFF705A4E)),
                     const SizedBox(width: 4),
                     Text(
-                      '4.2 (128)',
+                      '${averageRating.toStringAsFixed(1)} ($totalRatings)',
                       style: const TextStyle(
                         color: Color(0xFF1A1C1C),
                         fontSize: 11,

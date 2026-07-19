@@ -7,12 +7,18 @@ class LaptopSellerCard extends StatelessWidget {
   final LaptopEntity laptop;
   final String? sellerNameOverride;
   final String? sellerImageUrl;
+  final double averageRating;
+  final int totalRatings;
+  final VoidCallback? onTapSeller;
 
   const LaptopSellerCard({
     super.key,
     required this.laptop,
     this.sellerNameOverride,
     this.sellerImageUrl,
+    this.averageRating = 0.0,
+    this.totalRatings = 0,
+    this.onTapSeller,
   });
 
   @override
@@ -25,7 +31,9 @@ class LaptopSellerCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        if (laptop.sellerId != null) {
+        if (onTapSeller != null) {
+          onTapSeller!();
+        } else if (laptop.sellerId != null) {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => SellerProfileScreen(
@@ -122,7 +130,9 @@ class LaptopSellerCard extends StatelessWidget {
                             color: Color(0xFF705A4E),
                           ),
                           Text(
-                            '4.2',
+                            averageRating > 0
+                                ? averageRating.toStringAsFixed(1)
+                                : '-',
                             style: const TextStyle(
                               color: Color(0xFF1A1C1C),
                               fontSize: 11,

@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
 
 class SellerStatsRow extends StatelessWidget {
-  const SellerStatsRow({super.key});
+  final int totalRatings;
+  final double averageRating;
+
+  const SellerStatsRow({
+    super.key,
+    this.totalRatings = 0,
+    this.averageRating = 0.0,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: _buildStatCard('RESPONSE RATE', '98%')),
+        Expanded(child: _buildStatCard('AVERAGE RATING', averageRating.toStringAsFixed(1))),
         const SizedBox(width: 12),
-        Expanded(child: _buildStatCard('COMPLETED SALES', '450+')),
+        Expanded(child: _buildStatCard('TOTAL RATINGS', '$totalRatings')),
       ],
     );
   }

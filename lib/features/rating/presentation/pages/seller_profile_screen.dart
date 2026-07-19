@@ -6,12 +6,15 @@ import 'package:EliteReurbLap/features/chat/presentation/view_model/chat_viewmod
 import 'package:EliteReurbLap/features/laptop/data/repositories/laptop_repository.dart';
 import 'package:EliteReurbLap/features/laptop/domain/entities/laptop_entity.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/pages/laptop_details_screen.dart';
+import 'package:EliteReurbLap/features/rating/presentation/state/rating_state.dart';
+import 'package:EliteReurbLap/features/rating/presentation/view_model/rating_viewmodel.dart';
 import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_app_bar.dart';
 import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_chat_bar.dart';
 import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_listings_section.dart';
 import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_location_section.dart';
 import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_profile_header.dart';
 import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_rating_sheet.dart';
+import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_reviews_section.dart';
 import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_stats_row.dart';
 
 class SellerProfileScreen extends ConsumerStatefulWidget {
@@ -37,11 +40,15 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
   List<LaptopEntity>? _listings;
   bool _isLoading = false;
   String? _errorMessage;
+  bool _ratingSubmitted = false;
+
 
   @override
   void initState() {
     super.initState();
     _fetchListings();
+    // Fetch real-time ratings
+    ref.read(ratingViewModelProvider.notifier).getSellerRatings(widget.sellerId);
   }
 
   Future<void> _fetchListings() async {
@@ -206,6 +213,9 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
     );
 
     if (result == true && mounted) {
+      _ratingSubmitted = true;
+      // Refresh ratings after successful submission
+      ref.read(ratingViewModelProvider.notifier).getSellerRatings(widget.sellerId);
       messenger.clearSnackBars();
       messenger.showSnackBar(
         const SnackBar(
@@ -228,7 +238,19 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final ratingState = ref.watch(ratingViewModelProvider);
+    final stats = ratingState.sellerStats;
+    final avgRating = stats?.averageRating ?? 0.0;
+    final totalRatings = stats?.totalRatings ?? 0;
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          Navigator.of(context).pop(_ratingSubmitted);
+        }
+      },
+      child: Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       body: SafeArea(
         child: Column(
@@ -245,11 +267,21 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
                       sellerName: widget.sellerName,
                       sellerImageUrl: widget.sellerImageUrl,
                       onRateSeller: () => _onRateSeller(context),
+                      averageRating: avgRating,
+                      totalRatings: totalRatings,
                     ),
                     const SizedBox(height: 24),
-                    const SellerStatsRow(),
+                    SellerStatsRow(
+                      totalRatings: totalRatings,
+                      averageRating: avgRating,
+                    ),
                     const SizedBox(height: 24),
                     SellerLocationSection(location: widget.location),
+                    const SizedBox(height: 24),
+                    SellerReviewsSection(
+                      ratings: stats?.ratings ?? [],
+                      isLoading: ratingState.status == RatingStatus.loading,
+                    ),
                     const SizedBox(height: 24),
                     SellerListingsSection(
                       isLoading: _isLoading,
@@ -267,6 +299,7 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 }
