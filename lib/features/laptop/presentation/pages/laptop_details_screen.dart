@@ -92,12 +92,13 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
     );
   }
 
-  void _showSnackBar(String message) {
+  void _showSnackBar(String message, {Color? backgroundColor}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
+        backgroundColor: backgroundColor,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
       ),
@@ -217,6 +218,14 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
   }
 
   Future<void> _onChatNow(LaptopEntity laptop) async {
+    // Don't allow chatting with yourself
+    final sessionService = ref.read(userSessionServiceProvider);
+    final currentUserId = sessionService.getCurrentUserId();
+    if (laptop.sellerId != null && laptop.sellerId == currentUserId) {
+      _showSnackBar('You cannot chat with yourself', backgroundColor: Colors.red);
+      return;
+    }
+
     final sellerName = _resolveSellerName(laptop) ?? 'the seller';
 
     // Show confirmation dialog
