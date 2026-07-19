@@ -35,7 +35,10 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
         child: Column(
           children: [
             // Header
-            NotificationHeader(onMarkAllRead: _onMarkAllRead),
+            NotificationHeader(
+              onBack: () => Navigator.of(context).pop(),
+              onMarkAllRead: _onMarkAllRead,
+            ),
 
             // Scrollable content
             Expanded(child: _buildContent(state)),
