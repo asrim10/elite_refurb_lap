@@ -91,4 +91,10 @@ class ApiEndpoints {
   static const String ratings = '/ratings';
   static const String ratingById = '/ratings/'; // append /:id
   static const String ratingBySeller = '/ratings/seller/'; // append /:sellerId
+
+  // Notification Endpoints
+  static const String notifications = '/notifications';
+  static const String notificationUnreadCount = '/notifications/unread-count';
+  static const String notificationById = '/notifications/'; // append /:id, or /:id/read for mark-as-read
+  static const String notificationMarkAllRead = '/notifications/read-all';
 }
