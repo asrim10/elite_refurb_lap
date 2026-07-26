@@ -251,80 +251,85 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
           );
         }
 
-        // Count total items: laptop cards + banner + optional result count
         final showResultCount = _searchQuery.isNotEmpty;
-        final itemCount = laptops.length + 1 + (showResultCount ? 1 : 0);
 
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
-          itemCount: itemCount,
-          itemBuilder: (context, index) {
+        return CustomScrollView(
+          slivers: [
             // Banner at the top
-            if (index == 0) {
-              return _buildBanner();
-            }
+            SliverToBoxAdapter(
+              child: _buildBanner(),
+            ),
             // Result count (if search is active)
-            if (showResultCount && index == 1) {
-              return Padding(
-                padding: const EdgeInsets.only(
-                  left: 20,
-                  right: 20,
-                  top: 12,
-                  bottom: 8,
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      '${laptops.length} result${laptops.length == 1 ? '' : 's'}',
-                      style: const TextStyle(
-                        color: Color(0xFF6B7280),
-                        fontSize: 13,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
-            // Laptop card
-            final laptopIndex = index - 1 - (showResultCount ? 1 : 0);
-            final laptop = laptops[laptopIndex];
-            final isFavorite =
-                laptop.id != null && wishlistIds.contains(laptop.id);
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: [
-                  const SizedBox(height: 12),
-                  LaptopProductCard(
-                    product: laptop,
-                    isFavorite: isFavorite,
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => LaptopDetailsScreen(laptop: laptop),
-                        ),
-                      );
-                    },
-                    onFavorite: () {
-                      if (laptop.id != null) {
-                        if (isFavorite) {
-                          ref
-                              .read(wishlistViewModelProvider.notifier)
-                              .removeLaptop(laptop.id!);
-                        } else {
-                          ref
-                              .read(wishlistViewModelProvider.notifier)
-                              .addLaptop(laptop.id!);
-                        }
-                      }
-                    },
+            if (showResultCount)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    left: 20,
+                    right: 20,
+                    top: 12,
+                    bottom: 8,
                   ),
-                ],
+                  child: Row(
+                    children: [
+                      Text(
+                        '${laptops.length} result${laptops.length == 1 ? '' : 's'}',
+                        style: const TextStyle(
+                          color: Color(0xFF6B7280),
+                          fontSize: 13,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            );
-          },
+            // Product grid
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.53,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final laptop = laptops[index];
+                    final isFavorite =
+                        laptop.id != null && wishlistIds.contains(laptop.id);
+                    return LaptopProductCard(
+                      product: laptop,
+                      isFavorite: isFavorite,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                LaptopDetailsScreen(laptop: laptop),
+                          ),
+                        );
+                      },
+                      onFavorite: () {
+                        if (laptop.id != null) {
+                          if (isFavorite) {
+                            ref
+                                .read(wishlistViewModelProvider.notifier)
+                                .removeLaptop(laptop.id!);
+                          } else {
+                            ref
+                                .read(wishlistViewModelProvider.notifier)
+                                .addLaptop(laptop.id!);
+                          }
+                        }
+                      },
+                    );
+                  },
+                  childCount: laptops.length,
+                ),
+              ),
+            ),
+          ],
         );
     }
   }

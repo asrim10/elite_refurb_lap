@@ -75,7 +75,7 @@ class LaptopProductCard extends StatelessWidget {
               width: 1,
               color: Color(0x4CE8E0D8),
             ),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
           ),
           shadows: const [
             BoxShadow(
@@ -89,87 +89,93 @@ class LaptopProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image Section
-            Container(
-              width: double.infinity,
-              height: 180,
-              decoration: const BoxDecoration(color: Color(0xFFE8E0D8)),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(16),
-                      ),
-                      child: _imageUrl.isNotEmpty
-                          ? Image.network(
-                              _imageUrl,
-                              fit: BoxFit.contain,
-                              loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return const Center(
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Color(0xFFC4B0A4),
-                                  ),
-                                );
-                              },
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Center(
-                                  child: Icon(
+            // Image Section — fills remaining space via Expanded, never overflows
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(color: Color(0xFFF5F0EC)),
+                child: Stack(
+                  children: [
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: _imageUrl.isNotEmpty
+                            ? Image.network(
+                                _imageUrl,
+                                fit: BoxFit.contain,
+                                width: 130,
+                                height: 130,
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  final total = loadingProgress.expectedTotalBytes;
+                                  final progress = total != null
+                                      ? loadingProgress.cumulativeBytesLoaded / total
+                                      : null;
+                                  return Center(
+                                    child: SizedBox(
+                                      width: 28,
+                                      height: 28,
+                                      child: CircularProgressIndicator(
+                                        value: progress,
+                                        strokeWidth: 2.5,
+                                        color: const Color(0xFFC4B0A4),
+                                      ),
+                                    ),
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(
                                     Icons.laptop_mac,
-                                    size: 48,
+                                    size: 60,
                                     color: Color(0xFFC4B0A4),
-                                  ),
-                                );
-                              },
-                            )
-                          : const Center(
-                              child: Icon(
+                                  );
+                                },
+                              )
+                            : const Icon(
                                 Icons.laptop_mac,
-                                size: 48,
+                                size: 60,
                                 color: Color(0xFFC4B0A4),
                               ),
-                            ),
+                      ),
                     ),
-                  ),
-                  // Favorite Button
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: GestureDetector(
-                      onTap: onFavorite,
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: ShapeDecoration(
-                          color: Colors.white.withValues(alpha: 0.80),
-                          shape: const CircleBorder(),
-                          shadows: const [
-                            BoxShadow(
-                              color: Color(0x0C000000),
-                              blurRadius: 2,
-                              offset: Offset(0, 1),
-                              spreadRadius: 0,
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          isFavorite ? Icons.favorite : Icons.favorite_border,
-                          size: 18,
-                          color: isFavorite
-                              ? const Color(0xFFD32F2F)
-                              : const Color(0xFF6B5A50),
+                    // Favorite Button
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: GestureDetector(
+                        onTap: onFavorite,
+                        child: Container(
+                          width: 42,
+                          height: 42,
+                          decoration: ShapeDecoration(
+                            color: Colors.white.withValues(alpha: 0.80),
+                            shape: const CircleBorder(),
+                            shadows: const [
+                              BoxShadow(
+                                color: Color(0x0C000000),
+                                blurRadius: 2,
+                                offset: Offset(0, 1),
+                                spreadRadius: 0,
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            isFavorite ? Icons.favorite : Icons.favorite_border,
+                            size: 22,
+                            color: isFavorite
+                                ? const Color(0xFFD32F2F)
+                                : const Color(0xFF6B5A50),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             // Details Section
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -194,13 +200,15 @@ class LaptopProductCard extends StatelessWidget {
                   // Product Name
                   Text(
                     product.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.black,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 6),
                   // Specs
                   Text(
                     _formattedSpecs,
@@ -216,7 +224,7 @@ class LaptopProductCard extends StatelessWidget {
                     _formattedPrice,
                     style: const TextStyle(
                       color: Colors.black,
-                      fontSize: 18,
+                      fontSize: 20,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -235,7 +243,7 @@ class LaptopProductCard extends StatelessWidget {
     required Color textColor,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: ShapeDecoration(
         color: bgColor,
         shape: RoundedRectangleBorder(
@@ -246,7 +254,7 @@ class LaptopProductCard extends StatelessWidget {
         label,
         style: TextStyle(
           color: textColor,
-          fontSize: 9,
+          fontSize: 11,
           fontWeight: FontWeight.w400,
           height: 1.5,
         ),
