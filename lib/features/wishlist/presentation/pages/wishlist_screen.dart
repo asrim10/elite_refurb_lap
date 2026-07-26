@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:EliteReurbLap/core/services/storage/user_session_service.dart';
+import 'package:EliteReurbLap/features/chat/presentation/pages/chat_detail_screen.dart';
+import 'package:EliteReurbLap/features/chat/presentation/view_model/chat_viewmodel.dart';
 import 'package:EliteReurbLap/features/laptop/domain/entities/laptop_entity.dart';
+import 'package:EliteReurbLap/features/laptop/presentation/pages/laptop_details_screen.dart';
+import 'package:EliteReurbLap/features/laptop/presentation/state/laptop_state.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/view_model/laptop_viewmodel.dart';
 import 'package:EliteReurbLap/features/wishlist/presentation/state/wishlist_state.dart';
 import 'package:EliteReurbLap/features/wishlist/presentation/view_model/wishlist_viewmodel.dart';
@@ -26,26 +31,15 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
     'Sold',
   ];
 
-  final List<SimilarItem> _similarItems = const [
-    SimilarItem(
-      imageUrl: '',
-      title: 'HP ProBook 440',
-      condition: 'Verified Mint',
-      price: 549,
-    ),
-    SimilarItem(
-      imageUrl: '',
-      title: 'Asus VivoBook 15',
-      condition: 'Light Wear',
-      price: 490,
-    ),
-    SimilarItem(
-      imageUrl: '',
-      title: 'Surface Laptop 4',
-      condition: 'Verified Pristine',
-      price: 780,
-    ),
-  ];
+  List<LaptopEntity> _getSimilarLaptops(List<String> wishlistIds, List<LaptopEntity> allLaptops) {
+    // Exclude laptops already in the wishlist
+    final similar = allLaptops
+        .where((laptop) => laptop.id != null && !wishlistIds.contains(laptop.id))
+        .toList();
+    // Shuffle to get variety, then take up to 8
+    similar.shuffle();
+    return similar.take(8).toList();
+  }
 
   @override
   void initState() {
@@ -64,8 +58,113 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
         .toList();
   }
 
+  Future<void> _onChatNow(BuildContext context, LaptopEntity laptop) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final nav = Navigator.of(context);
+    final sessionService = ref.read(userSessionServiceProvider);
+    final currentUserId = sessionService.getCurrentUserId();
+
+    // Don't allow chatting with yourself
+    if (laptop.sellerId != null && laptop.sellerId == currentUserId) {
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Text('You cannot chat with yourself'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    final sellerName = laptop.sellerName ?? 'the seller';
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.chat_outlined, size: 22, color: Color(0xFF705A4E)),
+            SizedBox(width: 10),
+            Text(
+              'Start Chat',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+        content: Text(
+          'Start a conversation with $sellerName about\n${laptop.title}?',
+          style: const TextStyle(fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Yes, Chat Now',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF2D6A3F),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    if (laptop.id == null || laptop.sellerId == null) {
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Text('Cannot start chat: missing laptop or seller info'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    // Get or create conversation
+    await ref.read(chatViewModelProvider.notifier).getOrCreateConversationByLaptop(
+      laptopId: laptop.id!,
+      sellerId: laptop.sellerId!,
+      initialMessage: 'Hi, is this available?',
+    );
+
+    final chatState = ref.read(chatViewModelProvider);
+    final convo = chatState.selectedConversation;
+
+    if (!mounted) return;
+
+    final imageUrl = laptop.images.isNotEmpty ? laptop.images.first : null;
+
+    nav.push(
+      MaterialPageRoute(
+        builder: (_) => ChatDetailScreen(
+          conversationId: convo?.id ?? '',
+          otherParticipantName: sellerName,
+          otherParticipantImage: laptop.sellerImage,
+          isBuyer: true,
+          laptopTitle: laptop.title,
+          laptopPrice: 'NPR ${laptop.price.toStringAsFixed(0)}',
+          laptopImage: imageUrl,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final laptopState = ref.watch(laptopViewModelProvider);
     final wishlistState = ref.watch(wishlistViewModelProvider);
     final wishlistLaptops = _getWishlistLaptops(wishlistState.laptopIds);
 
@@ -93,7 +192,23 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                       child: Column(
                         children: [
                           _buildWishlistItems(wishlistLaptops),
-                          SimilarItemsSection(items: _similarItems),
+                          SimilarItemsSection(
+                              isLoading: laptopState.status == LaptopStatus.loading,
+                              items: _getSimilarLaptops(
+                                wishlistState.laptopIds,
+                                laptopState.laptops,
+                              ),
+                              onItemTap: (laptop) {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => LaptopDetailsScreen(
+                                      laptopId: laptop.id,
+                                      laptop: laptop,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                         ],
                       ),
                     ),
@@ -216,14 +331,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
             if (i > 0) const SizedBox(height: 16),
             WishlistItemCard(
               item: WishlistItem.fromLaptop(wishlistLaptops[i]),
-              onChat: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Chat - Coming soon'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
+              onChat: () => _onChatNow(context, wishlistLaptops[i]),
               onRemove: () {
                 final laptopId = wishlistLaptops[i].id;
                 if (laptopId != null) {
