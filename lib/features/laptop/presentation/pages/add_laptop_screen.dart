@@ -381,6 +381,15 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
           _showSnackBar('Please enter a valid display size');
           return false;
         }
+        final batteryText = _batteryLifeController.text.trim();
+        if (batteryText.isNotEmpty) {
+          final batteryHealth = double.tryParse(batteryText);
+          if (batteryHealth == null || batteryHealth < 0 || batteryHealth > 100) {
+            _showSnackBar('Battery health must be between 0 and 100');
+            return false;
+          }
+        }
+
         final yearText = _yearController.text.trim();
         if (yearText.isNotEmpty) {
           final year = int.tryParse(yearText);
@@ -970,8 +979,8 @@ class _AddLaptopScreenState extends ConsumerState<AddLaptopScreen> {
             Expanded(
               child: AddLaptopTextField(
                 controller: _batteryLifeController,
-                label: 'Battery Life',
-                hintText: 'In hours',
+                label: 'Battery Health',
+                hintText: 'Health % (e.g. 85)',
                 keyboardType: TextInputType.number,
               ),
             ),

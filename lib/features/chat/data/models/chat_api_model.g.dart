@@ -24,6 +24,10 @@ ChatApiModel _$ChatApiModelFromJson(Map<String, dynamic> json) => ChatApiModel(
       laptopImage: json['laptopImage'] as String?,
       otherParticipantName: json['otherParticipantName'] as String?,
       otherParticipantImage: json['otherParticipantImage'] as String?,
+      sellerName: json['sellerName'] as String?,
+      sellerImage: json['sellerImage'] as String?,
+      buyerName: json['buyerName'] as String?,
+      buyerImage: json['buyerImage'] as String?,
       createdAt: json['createdAt'] == null
           ? null
           : DateTime.parse(json['createdAt'] as String),
@@ -49,6 +53,10 @@ Map<String, dynamic> _$ChatApiModelToJson(ChatApiModel instance) =>
       'laptopImage': instance.laptopImage,
       'otherParticipantName': instance.otherParticipantName,
       'otherParticipantImage': instance.otherParticipantImage,
+      'sellerName': instance.sellerName,
+      'sellerImage': instance.sellerImage,
+      'buyerName': instance.buyerName,
+      'buyerImage': instance.buyerImage,
       'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),
     };

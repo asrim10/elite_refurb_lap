@@ -38,7 +38,7 @@ class LaptopSpecsCard extends StatelessWidget {
       if (laptop.operatingSystem != null && laptop.operatingSystem!.isNotEmpty)
         _SpecItem(icon: Icons.desktop_windows_outlined, label: 'OS', value: laptop.operatingSystem!),
       if (laptop.batteryLife != null)
-        _SpecItem(icon: Icons.battery_charging_full_outlined, label: 'Battery', value: '${laptop.batteryLife!.toStringAsFixed(1)} hrs'),
+        _SpecItem(icon: Icons.battery_charging_full_outlined, label: 'Battery', value: '${laptop.batteryLife!.toStringAsFixed(0)}% health'),
       if (laptop.weight != null)
         _SpecItem(icon: Icons.fitness_center_outlined, label: 'Weight', value: '${laptop.weight!.toStringAsFixed(1)} kg'),
     ];
