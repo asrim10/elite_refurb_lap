@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:EliteReurbLap/features/chat/presentation/pages/chat_detail_screen.dart';
 import 'package:EliteReurbLap/features/chat/presentation/view_model/chat_viewmodel.dart';
 import 'package:EliteReurbLap/features/laptop/domain/entities/laptop_entity.dart';
@@ -94,15 +95,7 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
                   _buildImageSection(laptop),
                   Expanded(child: _buildScrollContent(laptop, ratingState)),
                   LaptopDetailsBottomBar(
-                    onCallSeller: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Call seller - Coming soon'),
-                          backgroundColor: Color(0xFF2D6A3F),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
+                    onCallSeller: () => _onCallSeller(laptop),
                     onChatNow: () => _onChatNow(laptop),
                   ),
                 ],
@@ -213,6 +206,70 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _onCallSeller(LaptopEntity laptop) async {
+    final phone = laptop.sellerPhone;
+    if (phone == null || phone.isEmpty) {
+      _showSnackBar(
+        'No phone number available for this seller',
+        backgroundColor: Colors.red,
+      );
+      return;
+    }
+
+    final sellerName = _resolveSellerName(laptop) ?? 'the seller';
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.phone_outlined, size: 22, color: Color(0xFF705A4E)),
+            const SizedBox(width: 10),
+            const Text(
+              'Call Seller',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+        content: Text(
+          'Call $sellerName at\n$phone?',
+          style: const TextStyle(fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Yes, Call Now',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF2D6A3F),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    // Open the phone dialer with the seller's number
+    final uri = Uri.parse('tel:$phone');
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      _showSnackBar(
+        'Could not open dialer',
+        backgroundColor: Colors.red,
+      );
+    }
   }
 
   /// Resolves the seller display name:

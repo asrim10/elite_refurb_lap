@@ -63,6 +63,7 @@ class LaptopApiModel {
   final String? sellerId;
   final String? sellerName;
   final String? sellerImage;
+  final String? sellerPhone;
   final int? yearOfManufacture;
   final int? warrantyMonths;
   final LaptopLocationApiModel? location;
@@ -94,6 +95,7 @@ class LaptopApiModel {
     this.sellerId,
     this.sellerName,
     this.sellerImage,
+    this.sellerPhone,
     this.yearOfManufacture,
     this.warrantyMonths,
     this.location,
@@ -132,6 +134,7 @@ class LaptopApiModel {
       sellerId: sellerId,
       sellerName: sellerName,
       sellerImage: sellerImage,
+      sellerPhone: sellerPhone,
       yearOfManufacture: yearOfManufacture,
       warrantyMonths: warrantyMonths,
       location: location?.toEntity(),
@@ -166,6 +169,7 @@ class LaptopApiModel {
       sellerId: entity.sellerId,
       sellerName: entity.sellerName,
       sellerImage: entity.sellerImage,
+      sellerPhone: entity.sellerPhone,
       yearOfManufacture: entity.yearOfManufacture,
       warrantyMonths: entity.warrantyMonths,
       location: entity.location != null
