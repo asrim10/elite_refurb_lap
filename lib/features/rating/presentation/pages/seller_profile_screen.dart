@@ -11,7 +11,6 @@ import 'package:EliteReurbLap/features/rating/presentation/view_model/rating_vie
 import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_app_bar.dart';
 import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_chat_bar.dart';
 import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_listings_section.dart';
-import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_location_section.dart';
 import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_profile_header.dart';
 import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_rating_sheet.dart';
 import 'package:EliteReurbLap/features/rating/presentation/widgets/seller_reviews_section.dart';
@@ -288,8 +287,6 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
                           totalRatings: totalRatings,
                           averageRating: avgRating,
                         ),
-                        const SizedBox(height: 24),
-                        SellerLocationSection(location: widget.location),
                         const SizedBox(height: 24),
                         SellerReviewsSection(
                           ratings: stats?.ratings ?? [],
