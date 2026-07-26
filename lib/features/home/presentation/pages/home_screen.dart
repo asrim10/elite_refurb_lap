@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:EliteReurbLap/app/app.dart';
 import 'package:EliteReurbLap/features/home/presentation/widgets/home_header.dart';
 import 'package:EliteReurbLap/features/home/presentation/widgets/home_search_bar.dart';
@@ -81,6 +83,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
     }).toList();
   }
 
+  /// The banner carousel displayed inside the scrollable list.
+  Widget _buildBanner() {
+    return const _BannerCarousel(
+      banners: ['assets/images/banner1.png', 'assets/images/banner2.png'],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final laptopState = ref.watch(laptopViewModelProvider);
@@ -111,29 +120,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                 setState(() => _searchQuery = value);
               },
             ),
-            const SizedBox(height: 12),
-            // Result count when search is active
-            if (_searchQuery.isNotEmpty &&
-                (laptopState.status == LaptopStatus.loaded ||
-                    laptopState.status == LaptopStatus.created ||
-                    laptopState.status == LaptopStatus.updated ||
-                    laptopState.status == LaptopStatus.deleted))
-              Padding(
-                padding: const EdgeInsets.only(left: 20, right: 20, bottom: 8),
-                child: Row(
-                  children: [
-                    Text(
-                      '${_getFilteredLaptops(laptopState.laptops).length} result${_getFilteredLaptops(laptopState.laptops).length == 1 ? '' : 's'}',
-                      style: const TextStyle(
-                        color: Color(0xFF6B7280),
-                        fontSize: 13,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             Expanded(child: _buildProductList(laptopState, wishlistIds)),
           ],
         ),
@@ -264,40 +250,169 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
             ),
           );
         }
-        return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          itemCount: laptops.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
+
+        // Count total items: laptop cards + banner + optional result count
+        final showResultCount = _searchQuery.isNotEmpty;
+        final itemCount = laptops.length + 1 + (showResultCount ? 1 : 0);
+
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
+          itemCount: itemCount,
           itemBuilder: (context, index) {
-            final laptop = laptops[index];
+            // Banner at the top
+            if (index == 0) {
+              return _buildBanner();
+            }
+            // Result count (if search is active)
+            if (showResultCount && index == 1) {
+              return Padding(
+                padding: const EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  top: 12,
+                  bottom: 8,
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      '${laptops.length} result${laptops.length == 1 ? '' : 's'}',
+                      style: const TextStyle(
+                        color: Color(0xFF6B7280),
+                        fontSize: 13,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            // Laptop card
+            final laptopIndex = index - 1 - (showResultCount ? 1 : 0);
+            final laptop = laptops[laptopIndex];
             final isFavorite =
                 laptop.id != null && wishlistIds.contains(laptop.id);
-            return LaptopProductCard(
-              product: laptop,
-              isFavorite: isFavorite,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => LaptopDetailsScreen(laptop: laptop),
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  LaptopProductCard(
+                    product: laptop,
+                    isFavorite: isFavorite,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => LaptopDetailsScreen(laptop: laptop),
+                        ),
+                      );
+                    },
+                    onFavorite: () {
+                      if (laptop.id != null) {
+                        if (isFavorite) {
+                          ref
+                              .read(wishlistViewModelProvider.notifier)
+                              .removeLaptop(laptop.id!);
+                        } else {
+                          ref
+                              .read(wishlistViewModelProvider.notifier)
+                              .addLaptop(laptop.id!);
+                        }
+                      }
+                    },
                   ),
-                );
-              },
-              onFavorite: () {
-                if (laptop.id != null) {
-                  if (isFavorite) {
-                    ref
-                        .read(wishlistViewModelProvider.notifier)
-                        .removeLaptop(laptop.id!);
-                  } else {
-                    ref
-                        .read(wishlistViewModelProvider.notifier)
-                        .addLaptop(laptop.id!);
-                  }
-                }
-              },
+                ],
+              ),
             );
           },
         );
     }
+  }
+}
+
+/// An auto-scrolling banner carousel with dot indicators.
+class _BannerCarousel extends StatefulWidget {
+  final List<String> banners;
+
+  const _BannerCarousel({required this.banners});
+
+  @override
+  State<_BannerCarousel> createState() => _BannerCarouselState();
+}
+
+class _BannerCarouselState extends State<_BannerCarousel> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startAutoScroll();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _startAutoScroll() {
+    _timer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted) return;
+      final nextPage = (_currentPage + 1) % widget.banners.length;
+      _pageController.animateToPage(
+        nextPage,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: SizedBox(
+              width: double.infinity,
+              height: 185,
+              child: PageView.builder(
+                controller: _pageController,
+                onPageChanged: (page) => setState(() => _currentPage = page),
+                itemCount: widget.banners.length,
+                itemBuilder: (context, index) {
+                  return Image.asset(widget.banners[index], fit: BoxFit.cover);
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Dot indicators
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(widget.banners.length, (i) {
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: i == _currentPage ? 24 : 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: i == _currentPage
+                      ? const Color(0xFF9A8174)
+                      : const Color(0xFFCDC4CA),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
   }
 }
