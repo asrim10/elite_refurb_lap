@@ -58,8 +58,9 @@ class LaptopProductCard extends StatelessWidget {
     }
   }
 
-  String get _imageUrl =>
-      product.images.isNotEmpty ? ApiEndpoints.getImageUrl(product.images.first) : '';
+  String get _imageUrl => product.images.isNotEmpty
+      ? ApiEndpoints.getImageUrl(product.images.first)
+      : '';
 
   @override
   Widget build(BuildContext context) {
@@ -71,10 +72,7 @@ class LaptopProductCard extends StatelessWidget {
         decoration: ShapeDecoration(
           color: Colors.white,
           shape: RoundedRectangleBorder(
-            side: const BorderSide(
-              width: 1,
-              color: Color(0x4CE8E0D8),
-            ),
+            side: const BorderSide(width: 1, color: Color(0x4CE8E0D8)),
             borderRadius: BorderRadius.circular(20),
           ),
           shadows: const [
@@ -103,26 +101,30 @@ class LaptopProductCard extends StatelessWidget {
                             ? Image.network(
                                 _imageUrl,
                                 fit: BoxFit.contain,
-                                width: 130,
-                                height: 130,
-                                loadingBuilder: (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  final total = loadingProgress.expectedTotalBytes;
-                                  final progress = total != null
-                                      ? loadingProgress.cumulativeBytesLoaded / total
-                                      : null;
-                                  return Center(
-                                    child: SizedBox(
-                                      width: 28,
-                                      height: 28,
-                                      child: CircularProgressIndicator(
-                                        value: progress,
-                                        strokeWidth: 2.5,
-                                        color: const Color(0xFFC4B0A4),
-                                      ),
-                                    ),
-                                  );
-                                },
+                                width: double.infinity,
+                                height: double.infinity,
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      final total =
+                                          loadingProgress.expectedTotalBytes;
+                                      final progress = total != null
+                                          ? loadingProgress
+                                                    .cumulativeBytesLoaded /
+                                                total
+                                          : null;
+                                      return Center(
+                                        child: SizedBox(
+                                          width: 28,
+                                          height: 28,
+                                          child: CircularProgressIndicator(
+                                            value: progress,
+                                            strokeWidth: 2.5,
+                                            color: const Color(0xFFC4B0A4),
+                                          ),
+                                        ),
+                                      );
+                                    },
                                 errorBuilder: (context, error, stackTrace) {
                                   return const Icon(
                                     Icons.laptop_mac,
@@ -246,9 +248,7 @@ class LaptopProductCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: ShapeDecoration(
         color: bgColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(6),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
       ),
       child: Text(
         label,
