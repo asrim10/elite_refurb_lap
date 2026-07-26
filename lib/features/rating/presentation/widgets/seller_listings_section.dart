@@ -83,22 +83,47 @@ class SellerListingsSection extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 32),
           child: Column(
             children: [
+              const Icon(
+                Icons.error_outline,
+                size: 40,
+                color: Color(0xFFCDC4CA),
+              ),
+              const SizedBox(height: 12),
               Text(
                 'Failed to load listings',
                 style: const TextStyle(
                   color: Color(0xFF9A8174),
                   fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
+              Text(
+                errorMessage!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFF9A8174),
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 12),
               GestureDetector(
                 onTap: onRetry,
-                child: const Text(
-                  'Tap to retry',
-                  style: TextStyle(
-                    color: Color(0xFF705A4E),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  decoration: ShapeDecoration(
+                    shape: RoundedRectangleBorder(
+                      side: const BorderSide(color: Color(0xFF705A4E), width: 1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'Tap to retry',
+                    style: TextStyle(
+                      color: Color(0xFF705A4E),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),

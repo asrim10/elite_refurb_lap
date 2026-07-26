@@ -42,14 +42,15 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
   String? _errorMessage;
   bool _ratingSubmitted = false;
 
-
   @override
   void initState() {
     super.initState();
     _fetchListings();
     // Fetch real-time ratings after the widget tree is done building
     Future.microtask(
-      () => ref.read(ratingViewModelProvider.notifier).getSellerRatings(widget.sellerId),
+      () => ref
+          .read(ratingViewModelProvider.notifier)
+          .getSellerRatings(widget.sellerId),
     );
   }
 
@@ -59,9 +60,12 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
       _errorMessage = null;
     });
 
-    final result = await ref
-        .read(laptopRepositoryProvider)
-        .getSellerListings(widget.sellerId);
+    final allResult = await ref.read(laptopRepositoryProvider).getAll();
+
+    final result = allResult.map(
+      (listings) =>
+          listings.where((l) => l.sellerId == widget.sellerId).toList(),
+    );
 
     result.fold(
       (failure) {
@@ -183,8 +187,9 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
           laptopTitle: listingTitle,
           laptopPrice:
               'Rs. ${laptopEntity.price.toStringAsFixed(laptopEntity.price == laptopEntity.price.roundToDouble() ? 0 : 2)}',
-          laptopImage:
-              laptopEntity.images.isNotEmpty ? laptopEntity.images.first : null,
+          laptopImage: laptopEntity.images.isNotEmpty
+              ? laptopEntity.images.first
+              : null,
         ),
       ),
     );
@@ -217,7 +222,9 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
     if (result == true && mounted) {
       _ratingSubmitted = true;
       // Refresh ratings after successful submission
-      ref.read(ratingViewModelProvider.notifier).getSellerRatings(widget.sellerId);
+      ref
+          .read(ratingViewModelProvider.notifier)
+          .getSellerRatings(widget.sellerId);
       messenger.clearSnackBars();
       messenger.showSnackBar(
         const SnackBar(
@@ -253,55 +260,60 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
         }
       },
       child: Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SellerAppBar(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 24),
-                    SellerProfileHeader(
-                      sellerName: widget.sellerName,
-                      sellerImageUrl: widget.sellerImageUrl,
-                      onRateSeller: () => _onRateSeller(context),
-                      averageRating: avgRating,
-                      totalRatings: totalRatings,
+        backgroundColor: const Color(0xFFF9F9F9),
+        body: SafeArea(
+          child: Column(
+            children: [
+              const SellerAppBar(),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: _fetchListings,
+                  color: const Color(0xFF705A4E),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 24),
+                        SellerProfileHeader(
+                          sellerName: widget.sellerName,
+                          sellerImageUrl: widget.sellerImageUrl,
+                          onRateSeller: () => _onRateSeller(context),
+                          averageRating: avgRating,
+                          totalRatings: totalRatings,
+                        ),
+                        const SizedBox(height: 24),
+                        SellerStatsRow(
+                          totalRatings: totalRatings,
+                          averageRating: avgRating,
+                        ),
+                        const SizedBox(height: 24),
+                        SellerLocationSection(location: widget.location),
+                        const SizedBox(height: 24),
+                        SellerReviewsSection(
+                          ratings: stats?.ratings ?? [],
+                          isLoading: ratingState.status == RatingStatus.loading,
+                        ),
+                        const SizedBox(height: 24),
+                        SellerListingsSection(
+                          isLoading: _isLoading,
+                          errorMessage: _errorMessage,
+                          listings: _listings,
+                          onRetry: _fetchListings,
+                          onListingTap: _onListingTap,
+                        ),
+                        const SizedBox(height: 100),
+                      ],
                     ),
-                    const SizedBox(height: 24),
-                    SellerStatsRow(
-                      totalRatings: totalRatings,
-                      averageRating: avgRating,
-                    ),
-                    const SizedBox(height: 24),
-                    SellerLocationSection(location: widget.location),
-                    const SizedBox(height: 24),
-                    SellerReviewsSection(
-                      ratings: stats?.ratings ?? [],
-                      isLoading: ratingState.status == RatingStatus.loading,
-                    ),
-                    const SizedBox(height: 24),
-                    SellerListingsSection(
-                      isLoading: _isLoading,
-                      errorMessage: _errorMessage,
-                      listings: _listings,
-                      onRetry: _fetchListings,
-                      onListingTap: _onListingTap,
-                    ),
-                    const SizedBox(height: 100),
-                  ],
+                  ),
                 ),
               ),
-            ),
-            SellerChatBar(onChatNow: () => _onChatNow(context)),
-          ],
+              SellerChatBar(onChatNow: () => _onChatNow(context)),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }
