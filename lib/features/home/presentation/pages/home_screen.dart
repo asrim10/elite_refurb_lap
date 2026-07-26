@@ -25,6 +25,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _subscribedToRoute = false;
+  RouteObserver<ModalRoute<void>>? _routeObserver;
 
   @override
   void initState() {
@@ -47,19 +48,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
     super.didChangeDependencies();
     if (!_subscribedToRoute) {
       _subscribedToRoute = true;
-      final routeObserver = ref.read(routeObserverProvider);
+      _routeObserver = ref.read(routeObserverProvider);
       final route = ModalRoute.of(context);
-      if (route != null) {
-        routeObserver.subscribe(this, route);
+      if (route != null && _routeObserver != null) {
+        _routeObserver!.subscribe(this, route);
       }
     }
   }
 
   @override
   void dispose() {
-    if (_subscribedToRoute) {
-      final routeObserver = ref.read(routeObserverProvider);
-      routeObserver.unsubscribe(this);
+    if (_subscribedToRoute && _routeObserver != null) {
+      _routeObserver!.unsubscribe(this);
     }
     _searchController.dispose();
     super.dispose();

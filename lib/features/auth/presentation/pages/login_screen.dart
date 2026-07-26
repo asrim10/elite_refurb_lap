@@ -71,15 +71,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ref.listen(authViewModelProvider, (prev, next) {
       if (prev != null && prev.status == AuthStatus.loading) {
         if (next.status == AuthStatus.authenticated) {
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Signed in successfully!'),
               behavior: SnackBarBehavior.floating,
             ),
           );
+          if (!mounted) return;
           Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
         } else if (next.status == AuthStatus.error &&
             next.errorMessage != null) {
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(next.errorMessage!),

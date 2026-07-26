@@ -25,11 +25,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     ref.listen(authViewModelProvider, (prev, next) {
       if (prev != null && prev.status == AuthStatus.loading) {
         if (next.status == AuthStatus.unauthenticated) {
+          if (!mounted) return;
           Navigator.of(
             context,
           ).pushNamedAndRemoveUntil('/login', (route) => false);
         } else if (next.status == AuthStatus.error &&
             next.errorMessage != null) {
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(next.errorMessage!),
