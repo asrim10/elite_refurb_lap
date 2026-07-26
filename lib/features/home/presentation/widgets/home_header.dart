@@ -1,3 +1,4 @@
+import 'package:EliteReurbLap/core/api/api_endpoints.dart';
 import 'package:EliteReurbLap/features/auth/presentation/view_model/auth_viewmodel.dart';
 import 'package:EliteReurbLap/features/notification/presentation/pages/notification_screen.dart';
 import 'package:EliteReurbLap/features/notification/presentation/view_model/notification_viewmodel.dart';
@@ -43,7 +44,7 @@ class HomeHeader extends ConsumerWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Avatar
+              // Avatar — profile photo with loading/error fallback, or text initial
               Container(
                 width: 40,
                 height: 40,
@@ -51,16 +52,52 @@ class HomeHeader extends ConsumerWidget {
                   color: Colors.black,
                   shape: CircleBorder(),
                 ),
-                child: Center(
-                  child: Text(
-                    initial,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
+                clipBehavior: Clip.antiAlias,
+                child: user?.imageUrl != null && user!.imageUrl!.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: Image.network(
+                          ApiEndpoints.getImageUrl(user.imageUrl!),
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Center(
+                              child: Text(
+                                initial,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      )
+                    : Center(
+                        child: Text(
+                          initial,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
               ),
               const SizedBox(width: 12),
               // Greeting Text
@@ -103,6 +140,7 @@ class HomeHeader extends ConsumerWidget {
                   );
                 },
                 child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
                     const Icon(
                       Icons.favorite_outline,
@@ -111,11 +149,11 @@ class HomeHeader extends ConsumerWidget {
                     ),
                     if (wishlistCount > 0)
                       Positioned(
-                        right: -4,
-                        top: -4,
+                        right: -6,
+                        top: -6,
                         child: Container(
-                          width: 16,
-                          height: 16,
+                          width: 20,
+                          height: 20,
                           decoration: const ShapeDecoration(
                             color: Color(0xFFD32F2F),
                             shape: CircleBorder(),
@@ -125,7 +163,7 @@ class HomeHeader extends ConsumerWidget {
                               wishlistCount > 9 ? '9+' : '$wishlistCount',
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 9,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -145,6 +183,7 @@ class HomeHeader extends ConsumerWidget {
                   );
                 },
                 child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
                     const Icon(
                       Icons.notifications_outlined,
@@ -153,11 +192,11 @@ class HomeHeader extends ConsumerWidget {
                     ),
                     if (unreadCount > 0)
                       Positioned(
-                        right: -3,
-                        top: -4,
+                        right: -6,
+                        top: -6,
                         child: Container(
-                          width: 16,
-                          height: 16,
+                          width: 20,
+                          height: 20,
                           decoration: const ShapeDecoration(
                             color: Colors.black,
                             shape: CircleBorder(),
@@ -167,7 +206,7 @@ class HomeHeader extends ConsumerWidget {
                               unreadCount > 9 ? '9+' : '$unreadCount',
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 9,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
