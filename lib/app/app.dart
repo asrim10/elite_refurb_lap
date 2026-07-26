@@ -8,17 +8,24 @@ import 'package:EliteReurbLap/features/splash/presentation/pages/splash_screen2.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+final routeObserverProvider = Provider<RouteObserver<ModalRoute<void>>>(
+  (_) => RouteObserver<ModalRoute<void>>(),
+);
+
 class Myapp extends ConsumerWidget {
   const Myapp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final routeObserver = ref.watch(routeObserverProvider);
+
     return MaterialApp(
       title: 'Elite Refurb Lap',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme(),
       darkTheme: AppTheme.darkTheme(),
       themeMode: ThemeMode.system,
+      navigatorObservers: [routeObserver],
       home: const SplashScreen(),
       routes: {
         '/splash2': (context) => const SplashScreen2(),

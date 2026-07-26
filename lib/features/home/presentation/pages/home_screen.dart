@@ -1,3 +1,4 @@
+import 'package:EliteReurbLap/app/app.dart';
 import 'package:EliteReurbLap/features/home/presentation/widgets/home_header.dart';
 import 'package:EliteReurbLap/features/home/presentation/widgets/home_search_bar.dart';
 import 'package:EliteReurbLap/features/home/presentation/widgets/laptop_product_card.dart';
@@ -18,24 +19,54 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  bool _subscribedToRoute = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(laptopViewModelProvider.notifier).getAllLaptops();
-      ref.read(wishlistViewModelProvider.notifier).getMyWishlist();
-      ref.read(notificationViewModelProvider.notifier).getNotifications();
+      _fetchData();
     });
+  }
+
+  void _fetchData({bool showLoading = true}) {
+    ref
+        .read(laptopViewModelProvider.notifier)
+        .getAllLaptops(showLoading: showLoading);
+    ref.read(wishlistViewModelProvider.notifier).getMyWishlist();
+    ref.read(notificationViewModelProvider.notifier).getNotifications();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_subscribedToRoute) {
+      _subscribedToRoute = true;
+      final routeObserver = ref.read(routeObserverProvider);
+      final route = ModalRoute.of(context);
+      if (route != null) {
+        routeObserver.subscribe(this, route);
+      }
+    }
   }
 
   @override
   void dispose() {
+    if (_subscribedToRoute) {
+      final routeObserver = ref.read(routeObserverProvider);
+      routeObserver.unsubscribe(this);
+    }
     _searchController.dispose();
     super.dispose();
+  }
+
+  /// Called when this screen becomes the top-most route after another route pops.
+  @override
+  void didPopNext() {
+    _fetchData(showLoading: false);
   }
 
   /// Filters laptops locally based on the search query.
@@ -62,7 +93,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _showSnackBar('Added to wishlist');
       } else if (next.status == WishlistStatus.laptopRemoved) {
         _showSnackBar('Removed from wishlist');
-      } else if (next.status == WishlistStatus.error && next.errorMessage != null) {
+      } else if (next.status == WishlistStatus.error &&
+          next.errorMessage != null) {
         _showSnackBar(next.errorMessage!);
       }
     });
@@ -81,10 +113,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             const SizedBox(height: 12),
             // Result count when search is active
-            if (_searchQuery.isNotEmpty && (laptopState.status == LaptopStatus.loaded ||
-                laptopState.status == LaptopStatus.created ||
-                laptopState.status == LaptopStatus.updated ||
-                laptopState.status == LaptopStatus.deleted))
+            if (_searchQuery.isNotEmpty &&
+                (laptopState.status == LaptopStatus.loaded ||
+                    laptopState.status == LaptopStatus.created ||
+                    laptopState.status == LaptopStatus.updated ||
+                    laptopState.status == LaptopStatus.deleted))
               Padding(
                 padding: const EdgeInsets.only(left: 20, right: 20, bottom: 8),
                 child: Row(
@@ -125,9 +158,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       case LaptopStatus.initial:
       case LaptopStatus.loading:
         return const Center(
-          child: CircularProgressIndicator(
-            color: Color(0xFFC4B0A4),
-          ),
+          child: CircularProgressIndicator(color: Color(0xFFC4B0A4)),
         );
       case LaptopStatus.error:
         return Center(
@@ -154,9 +185,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const SizedBox(height: 16),
                 TextButton.icon(
                   onPressed: () {
-                    ref
-                        .read(laptopViewModelProvider.notifier)
-                        .getAllLaptops();
+                    ref.read(laptopViewModelProvider.notifier).getAllLaptops();
                   },
                   icon: const Icon(Icons.refresh),
                   label: const Text('Try Again'),

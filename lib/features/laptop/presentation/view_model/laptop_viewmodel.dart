@@ -41,8 +41,11 @@ class LaptopViewModel extends Notifier<LaptopState> {
 
   Future<void> getAllLaptops({
     Map<String, dynamic>? queryParameters,
+    bool showLoading = true,
   }) async {
-    state = state.copyWith(status: LaptopStatus.loading);
+    if (showLoading) {
+      state = state.copyWith(status: LaptopStatus.loading);
+    }
 
     final result = await _getAllLaptopsUsecase(
       GetAllLaptopsParams(queryParameters: queryParameters),
