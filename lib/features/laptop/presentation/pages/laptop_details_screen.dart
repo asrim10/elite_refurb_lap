@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:EliteReurbLap/features/chat/presentation/pages/chat_detail_screen.dart';
 import 'package:EliteReurbLap/features/chat/presentation/view_model/chat_viewmodel.dart';
 import 'package:EliteReurbLap/features/laptop/domain/entities/laptop_entity.dart';
@@ -184,7 +185,10 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
             mainAxisSize: MainAxisSize.min,
             spacing: 16,
             children: [
-              const Icon(Icons.share_outlined, size: 24, color: Colors.black),
+              GestureDetector(
+                onTap: () => _onShare(laptop),
+                child: const Icon(Icons.share_outlined, size: 24, color: Colors.black),
+              ),
               GestureDetector(
                 onTap: () {
                   if (laptop.id != null) {
@@ -205,6 +209,17 @@ class _LaptopDetailsScreenState extends ConsumerState<LaptopDetailsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _onShare(LaptopEntity laptop) {
+    final price = 'NPR ${laptop.price.toStringAsFixed(0)}';
+    final link = 'https://eliterefurb.app/laptop/${laptop.id ?? ''}';
+    final message = 'Check out ${laptop.title} - $price\n\n$link';
+
+    Share.share(
+      message,
+      subject: 'Check out this ${laptop.title} on Elite Refurb Lap!',
     );
   }
 
