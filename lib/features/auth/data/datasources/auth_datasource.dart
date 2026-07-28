@@ -12,4 +12,10 @@ abstract interface class IAuthRemoteDataSource {
     String? phoneNumber,
     String? imageUrl,
   });
+
+  /// Sends a password reset email to the given email address.
+  Future<void> requestPasswordReset(String email);
+
+  /// Resets the password using a valid reset token.
+  Future<void> resetPassword(String token, String newPassword);
 }

@@ -11,6 +11,8 @@ enum AuthStatus {
   profileLoaded,
   profileUpdating,
   profileUpdated,
+  passwordResetEmailSent,
+  passwordResetSuccess,
   error,
 }
 

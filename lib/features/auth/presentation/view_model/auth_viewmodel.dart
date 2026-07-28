@@ -4,6 +4,8 @@ import 'package:EliteReurbLap/features/auth/domain/usecases/get_profile_usecase.
 import 'package:EliteReurbLap/features/auth/domain/usecases/login_usecase.dart';
 import 'package:EliteReurbLap/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:EliteReurbLap/features/auth/domain/usecases/register_usecase.dart';
+import 'package:EliteReurbLap/features/auth/domain/usecases/request_password_reset_usecase.dart';
+import 'package:EliteReurbLap/features/auth/domain/usecases/reset_password_usecase.dart';
 import 'package:EliteReurbLap/features/auth/domain/usecases/update_profile_usecase.dart';
 import 'package:EliteReurbLap/features/auth/presentation/state/auth_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +21,8 @@ class AuthViewModel extends Notifier<AuthState> {
   late final GetProfileUsecase _getProfileUsecase;
   late final GetCurrentUserUsecase _getCurrentUserUsecase;
   late final UpdateProfileUsecase _updateProfileUsecase;
+  late final RequestPasswordResetUsecase _requestPasswordResetUsecase;
+  late final ResetPasswordUsecase _resetPasswordUsecase;
 
   @override
   AuthState build() {
@@ -28,6 +32,9 @@ class AuthViewModel extends Notifier<AuthState> {
     _getProfileUsecase = ref.read(getProfileUsecaseProvider);
     _getCurrentUserUsecase = ref.read(getCurrentUserUsecaseProvider);
     _updateProfileUsecase = ref.read(updateProfileUsecaseProvider);
+    _requestPasswordResetUsecase =
+        ref.read(requestPasswordResetUsecaseProvider);
+    _resetPasswordUsecase = ref.read(resetPasswordUsecaseProvider);
     return const AuthState();
   }
 
@@ -159,6 +166,45 @@ class AuthViewModel extends Notifier<AuthState> {
         status: AuthStatus.profileUpdated,
         authEntity: authEntity,
         imageVersion: state.imageVersion + 1,
+      ),
+    );
+  }
+
+  Future<void> requestPasswordReset({required String email}) async {
+    state = state.copyWith(status: AuthStatus.loading);
+
+    final result = await _requestPasswordResetUsecase(
+      RequestPasswordResetParams(email: email),
+    );
+
+    result.fold(
+      (failure) => state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: failure.message,
+      ),
+      (_) => state = state.copyWith(
+        status: AuthStatus.passwordResetEmailSent,
+      ),
+    );
+  }
+
+  Future<void> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    state = state.copyWith(status: AuthStatus.loading);
+
+    final result = await _resetPasswordUsecase(
+      ResetPasswordParams(token: token, newPassword: newPassword),
+    );
+
+    result.fold(
+      (failure) => state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: failure.message,
+      ),
+      (_) => state = state.copyWith(
+        status: AuthStatus.passwordResetSuccess,
       ),
     );
   }

@@ -14,4 +14,10 @@ abstract interface class IAuthRepository {
     String? phoneNumber,
     String? imageUrl,
   });
+
+  /// Sends a password reset email to the given email address.
+  Future<Either<Failure, void>> requestPasswordReset(String email);
+
+  /// Resets the password using a valid reset token.
+  Future<Either<Failure, void>> resetPassword(String token, String newPassword);
 }

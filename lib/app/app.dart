@@ -1,6 +1,8 @@
 import 'package:EliteReurbLap/app/theme/theme_data.dart';
 import 'package:EliteReurbLap/features/auth/presentation/pages/login_screen.dart';
 import 'package:EliteReurbLap/features/auth/presentation/pages/signup_screen.dart';
+import 'package:EliteReurbLap/features/auth/presentation/pages/forgot_password_screen.dart';
+import 'package:EliteReurbLap/features/auth/presentation/pages/reset_password_screen.dart';
 import 'package:EliteReurbLap/app/pages/main_shell.dart';
 import 'package:EliteReurbLap/features/laptop/presentation/pages/my_listings_screen.dart';
 import 'package:EliteReurbLap/features/splash/presentation/pages/splash_screen.dart';
@@ -31,6 +33,14 @@ class Myapp extends ConsumerWidget {
         '/splash2': (context) => const SplashScreen2(),
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignupScreen(),
+        '/forgot-password': (context) => const ForgotPasswordScreen(),
+        '/reset-password': (context) {
+          final args =
+              ModalRoute.of(context)?.settings.arguments
+                  as Map<String, dynamic>?;
+          final token = args?['token'] as String?;
+          return ResetPasswordScreen(initialToken: token);
+        },
         '/home': (context) => const MainShell(),
         '/my-listings': (context) => const MyListingsScreen(),
       },
