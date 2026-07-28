@@ -29,7 +29,7 @@ class SellerListingsSection extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Active Listings',
+              'All Listings',
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 18,
@@ -148,7 +148,7 @@ class SellerListingsSection extends StatelessWidget {
               ),
               SizedBox(height: 12),
               Text(
-                'No active listings yet',
+                'No listings yet',
                 style: TextStyle(color: Color(0xFF9A8174), fontSize: 14),
               ),
             ],

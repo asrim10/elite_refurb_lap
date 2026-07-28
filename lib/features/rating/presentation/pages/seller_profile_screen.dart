@@ -59,12 +59,11 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
       _errorMessage = null;
     });
 
-    final allResult = await ref.read(laptopRepositoryProvider).getAll();
-
-    final result = allResult.map(
-      (listings) =>
-          listings.where((l) => l.sellerId == widget.sellerId).toList(),
-    );
+    // Use the proper getSellerListings endpoint to fetch all listings
+    // (both available and sold) for this seller
+    final result = await ref
+        .read(laptopRepositoryProvider)
+        .getSellerListings(widget.sellerId);
 
     result.fold(
       (failure) {

@@ -38,7 +38,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   void _fetchData({bool showLoading = true}) {
     ref
         .read(laptopViewModelProvider.notifier)
-        .getAllLaptops(showLoading: showLoading);
+        .getAllLaptops(
+          showLoading: showLoading,
+          queryParameters: const {'status': 'available'},
+        );
     ref.read(wishlistViewModelProvider.notifier).getMyWishlist();
     ref.read(notificationViewModelProvider.notifier).getNotifications();
   }
@@ -171,7 +174,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                 const SizedBox(height: 16),
                 TextButton.icon(
                   onPressed: () {
-                    ref.read(laptopViewModelProvider.notifier).getAllLaptops();
+                    ref
+                        .read(laptopViewModelProvider.notifier)
+                        .getAllLaptops(
+                          queryParameters: const {'status': 'available'},
+                        );
                   },
                   icon: const Icon(Icons.refresh),
                   label: const Text('Try Again'),

@@ -297,16 +297,109 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
           itemCount: filteredLaptops.length,
           separatorBuilder: (_, __) => const SizedBox(height: 16),
           itemBuilder: (context, index) {
+            final laptop = filteredLaptops[index];
             return _ListingCard(
-              laptop: filteredLaptops[index],
+              laptop: laptop,
               onEdit: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) =>
-                        AddLaptopScreen(editLaptop: filteredLaptops[index]),
+                        AddLaptopScreen(editLaptop: laptop),
                   ),
                 );
               },
+              onMarkAsSold: laptop.status == 'available'
+                  ? () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          title: const Row(
+                            children: [
+                              Icon(
+                                Icons.check_circle_outline,
+                                size: 24,
+                                color: Color(0xFF2D6A3F),
+                              ),
+                              SizedBox(width: 12),
+                              Text(
+                                'Mark as Sold',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          content: Text(
+                            'Mark "${laptop.title}" as sold?\n\n'
+                            'This will remove it from the marketplace. '
+                            'It will remain visible in your listing history.',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              height: 1.5,
+                              color: Color(0xFF4B454A),
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(false),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.of(ctx).pop(true),
+                              style: TextButton.styleFrom(
+                                backgroundColor:
+                                    const Color(0xFF2D6A3F),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(8),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 10,
+                                ),
+                              ),
+                              child: const Text(
+                                'Mark as Sold',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed == true && laptop.id != null) {
+                        await ref
+                            .read(laptopViewModelProvider.notifier)
+                            .updateLaptop(
+                              id: laptop.id!,
+                              data: {'status': 'sold'},
+                            );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context)
+                              .clearSnackBars();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'Listing marked as sold',
+                              ),
+                              backgroundColor:
+                                  const Color(0xFF2D6A3F),
+                              behavior: SnackBarBehavior.floating,
+                              duration:
+                                  const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      }
+                    }
+                  : null,
               onDelete: () async {
                 final confirmed = await showDialog<bool>(
                   context: context,
@@ -330,10 +423,10 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
                     ],
                   ),
                 );
-                if (confirmed == true && filteredLaptops[index].id != null) {
+                if (confirmed == true && laptop.id != null) {
                   ref
                       .read(laptopViewModelProvider.notifier)
-                      .deleteLaptop(filteredLaptops[index].id!);
+                      .deleteLaptop(laptop.id!);
                 }
               },
             );
@@ -356,11 +449,13 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
 class _ListingCard extends StatelessWidget {
   final LaptopEntity laptop;
   final VoidCallback onEdit;
+  final VoidCallback? onMarkAsSold;
   final VoidCallback onDelete;
 
   const _ListingCard({
     required this.laptop,
     required this.onEdit,
+    this.onMarkAsSold,
     required this.onDelete,
   });
 
@@ -521,7 +616,11 @@ class _ListingCard extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.start,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         spacing: 8,
-                        children: [_buildEditButton(), _buildDeleteButton()],
+                        children: [
+                          if (onMarkAsSold != null) _buildMarkAsSoldButton(),
+                          _buildEditButton(),
+                          _buildDeleteButton(),
+                        ],
                       ),
                     ],
                   ),
@@ -596,6 +695,39 @@ class _ListingCard extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildMarkAsSoldButton() {
+    return GestureDetector(
+      onTap: onMarkAsSold,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: ShapeDecoration(
+          color: const Color(0xFF2D6A3F),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          spacing: 4,
+          children: [
+            Icon(Icons.check_circle_outline, size: 14, color: Colors.white),
+            Text(
+              'SOLD',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+                height: 1.50,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

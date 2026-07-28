@@ -59,7 +59,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(laptopViewModelProvider.notifier).getAllLaptops();
+      ref.read(laptopViewModelProvider.notifier).getAllLaptops(
+        queryParameters: const {'status': 'available'},
+      );
       ref.read(wishlistViewModelProvider.notifier).getMyWishlist();
     });
   }
@@ -94,6 +96,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final params = _currentFilter.toQueryParams();
     final filteredParams = <String, dynamic>{};
     filteredParams.addAll(params);
+
+    // Always filter by available status
+    filteredParams['status'] = 'available';
 
     // Add search query if present
     if (_searchQuery.isNotEmpty) {
@@ -390,14 +395,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
                 ),
                 if (_currentFilter.hasActiveFilters) ...[                    
-                  const SizedBox(width: 8),
-                  GestureDetector(
+                  const SizedBox(width: 8),                    GestureDetector(
                     onTap: () {
                       setState(() {
                         _currentFilter = const SearchFilter();
                       });
                       ref.read(laptopViewModelProvider.notifier)
-                          .getAllLaptops();
+                          .getAllLaptops(
+                            queryParameters: const {'status': 'available'},
+                          );
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
